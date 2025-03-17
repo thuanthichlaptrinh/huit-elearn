@@ -1,0 +1,30 @@
+.input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.input-label {
+    font-size: 14px;
+    color: #555;
+}
+
+.required {
+    color: red;
+    margin-left: 4px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+        border-color: #6a5acd;
+        box-shadow: 0 0 4px rgba(106, 90, 205, 0.5);
+    }
+}
