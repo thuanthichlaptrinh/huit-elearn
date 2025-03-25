@@ -5,14 +5,14 @@ $icon-color: #4b5563;
 
 .dropdown {
     position: relative;
-    width: 200px;
 
     &-toggle {
         display: flex;
         align-items: center;
         justify-content: space-between;
         background: #f9fafb;
-        border: 1px solid $border-color;
+        color: #b3b3b3;
+        // border: 1px solid $border-color;
         border-radius: 8px;
         padding: 10px;
         cursor: pointer;

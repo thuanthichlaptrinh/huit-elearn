@@ -26,7 +26,7 @@ function CheckboxGroup({ options, selectedValues, onChange }) {
                         className={cx('checkbox-input')}
                     />
                     <span className={cx('checkbox-custom')}></span>
-                    {option.label}
+                    <span className={cx('title')}>{option.label}</span>
                 </label>
             ))}
         </div>
