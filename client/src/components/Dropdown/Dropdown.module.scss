@@ -11,13 +11,13 @@ $icon-color: #4b5563;
         align-items: center;
         justify-content: space-between;
         background: #f9fafb;
+        font-weight: 400;
         color: #b3b3b3;
         // border: 1px solid $border-color;
         border-radius: 8px;
         padding: 10px;
         cursor: pointer;
         transition: 0.3s;
-
         &:hover {
             border-color: $primary-color;
         }
@@ -28,8 +28,11 @@ $icon-color: #4b5563;
         }
 
         .arrow {
-            margin-left: auto;
+            margin-left: 4px;
             font-size: 12px;
+            width: 16px;
+            height: 16px;
+            color: var(--black-color);
         }
     }
 

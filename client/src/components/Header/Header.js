@@ -1,7 +1,7 @@
 import React from 'react';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 
 import logo from '../../assets/images/logo.svg';
 import avatar from '../../assets/images/student-photo.png';
@@ -23,18 +23,18 @@ function Header() {
                 </div>
 
                 <div className={cx('actions')}>
-                    <Link to="/materials" className={cx('action-item')}>
+                    <NavLink to="/upload" className={({ isActive }) => cx('action-item', { active: isActive })}>
                         Tải lên tài liệu
-                    </Link>
-                    <Link to="/materials" className={cx('action-item')}>
-                        Tạo bài kiểm tra ngẫu nhiên
-                    </Link>
-                    <Link to="/exams" className={cx('action-item')}>
+                    </NavLink>
+                    <NavLink to="/createtest" className={({ isActive }) => cx('action-item', { active: isActive })}>
+                        Tạo bài kiểm tra
+                    </NavLink>
+                    <NavLink to="/exams" className={({ isActive }) => cx('action-item', { active: isActive })}>
                         Trắc nghiệm
-                    </Link>
-                    <Link to="/news" className={cx('action-item')}>
+                    </NavLink>
+                    <NavLink to="/news" className={({ isActive }) => cx('action-item', { active: isActive })}>
                         Tin tức
-                    </Link>
+                    </NavLink>
                     <div className={cx('notification')}>
                         <img className={cx('notification-icon')} src="/images/Bell.svg" alt="" />
                         <span className={cx('notification-count')}>2</span>

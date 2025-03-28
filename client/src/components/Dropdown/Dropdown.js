@@ -20,7 +20,7 @@ function Dropdown({ options, label, withIcon }) {
             <div className={cx('dropdown-toggle')} onClick={toggleDropdown}>
                 {withIcon && <FaFilter className={cx('icon')} />}
                 {selected}
-                <span className={cx('arrow')}>▼</span>
+                <img className={cx('arrow')} src="/images/Dropdown.svg" alt="" />
             </div>
 
             {isOpen && (
