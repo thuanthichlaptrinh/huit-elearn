@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import queryString from 'query-string';
 import classNames from 'classnames/bind';
 import styles from './FilterBook.module.scss';
-import SearchBar from '../../components/SearchBar/SearchBar';
+import SearchBar from '../../layouts/components/SearchBar';
 import CheckboxGroup from '../../components/CheckboxGroup/CheckboxGroup';
 import Dropdown from '../../components/Dropdown';
 
