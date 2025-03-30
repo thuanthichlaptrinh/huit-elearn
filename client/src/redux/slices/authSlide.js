@@ -3,17 +3,23 @@ import { createSlice } from '@reduxjs/toolkit';
 const authSlice = createSlice({
     name: 'auth',
     initialState: {
+        isLoggedIn: false,
         user: null,
-        isAuthenticated: false,
+        email: '',
     },
     reducers: {
         login: (state, action) => {
-            state.user = action.payload;
-            state.isAuthenticated = true;
+            state.isLoggedIn = true;
+            state.email = action.payload.email;
+            state.user = {
+                email: action.payload.email,
+                // Các thông tin người dùng khác có thể được thêm vào đây
+            };
         },
         logout: (state) => {
+            state.isLoggedIn = false;
             state.user = null;
-            state.isAuthenticated = false;
+            state.email = '';
         },
     },
 });

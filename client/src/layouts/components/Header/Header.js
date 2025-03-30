@@ -2,6 +2,7 @@ import React from 'react';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { Link, NavLink } from 'react-router-dom';
+import { useSelector } from 'react-redux'; // Thêm dòng này
 
 import logo from '../../../assets/images/logo.svg';
 import avatar from '../../../assets/images/student-photo.png';
@@ -9,6 +10,10 @@ import avatar from '../../../assets/images/student-photo.png';
 const cx = classNames.bind(styles);
 
 function Header() {
+    // Lấy trạng thái đăng nhập từ Redux store
+    const { isLoggedIn } = useSelector((state) => state.auth);
+    const currentUser = isLoggedIn;
+
     return (
         <header className={cx('wrapper')}>
             <div className={cx('inner')}>
@@ -40,7 +45,11 @@ function Header() {
                         <span className={cx('notification-count')}>2</span>
                     </div>
                     <div className={cx('user-avatar')}>
-                        <img src={avatar} alt="User Avatar" />
+                        {currentUser ? (
+                            <img className={cx('true')} src={avatar} alt=" " />
+                        ) : (
+                            <img className={cx('false')} src="/images/user-icon.svg" alt="" />
+                        )}
                     </div>
                 </div>
             </div>

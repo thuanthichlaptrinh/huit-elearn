@@ -49,7 +49,7 @@
 
 .form-banner {
     width: 50%;
-    height: 602.23px;
+    height: 635.03px;
     background-size: cover;
     background-position: left;
     position: relative;
@@ -57,7 +57,11 @@
 
 .form-content {
     flex: 1;
-    padding: 60px;
+    padding: 40px;
+
+    .wellcome {
+        font-size: 14px;
+    }
 
     p {
         color: var(--primary);
@@ -158,5 +162,63 @@
             margin-left: 12px;
             font-family: Montserrat;
         }
+    }
+}
+
+.password-requirements {
+    font-size: 13px;
+    color: var(--text-color) !important;
+    margin-top: 12px;
+    margin-bottom: -8px;
+
+    ul {
+        list-style: circle;
+
+        li {
+            font-weight: 400;
+            margin-left: 20px;
+        }
+    }
+}
+
+.password-field-container {
+    position: relative;
+
+    .show-password {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+    }
+}
+
+.otp-message {
+    color: var(--text-color) !important;
+    font-size: 13px;
+    font-weight: 400;
+    margin-top: 14px;
+    margin-bottom: -8px;
+}
+
+.error-message {
+    font-size: 13px;
+    margin-top: 8px;
+    color: var(--danger-color) !important;
+}
+
+.resend-otp {
+    padding: 12px 0;
+    display: block;
+    margin: 0 auto;
+    color: var(--primary);
+    cursor: pointer;
+
+    span {
+        margin-left: 6px;
+    }
+
+    &:hover,
+    svg:hover {
+        color: #0404a698;
     }
 }

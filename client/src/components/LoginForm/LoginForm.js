@@ -14,18 +14,30 @@ const LoginForm = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // const handleSubmit = (e) => {
-    //     e.preventDefault();
-    //     dispatch(login({ email }));
-    //     alert('Đăng nhập thành công!');
-    // };
+    // Xử lý sự kiện thay đổi email
+    const handleEmailChange = (e) => {
+        setEmail(e.target.value);
+    };
+
+    // Xử lý sự kiện thay đổi mật khẩu
+    const handlePasswordChange = (e) => {
+        setPassword(e.target.value);
+    };
+
+    // Xử lý sự kiện đăng nhập
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        dispatch(login({ email, password })); // Dispatch action login với email và password
+        navigate('/'); // Chuyển hướng về trang chủ sau khi đăng nhập
+        // alert('Đăng nhập thành công!');
+    };
 
     return (
         <div className={cx('wrapper')}>
             <div className={cx('link')}>
                 <Link to="/">Trang chủ</Link> / <Link to="/account">Tài khoản</Link> / <span>Đăng nhập</span>
             </div>
-            <form className={cx('login-from')}>
+            <form className={cx('login-from')} onSubmit={handleSubmit}>
                 <div className={cx('form-banner')} style={{ backgroundImage: "url('/images/bialogin.jpg')" }}>
                     <p className={cx('title')}>
                         Tìm kiếm và tạo bài kiểm tra dễ dàng tại <span>HUIT E-LEARN</span>
@@ -38,10 +50,23 @@ const LoginForm = () => {
 
                     <div className={cx('input-gr')}>
                         <div className={cx('input-email')}>
-                            <InputField label="Email" placeholder="Nhập Email của bạn" required />
+                            <InputField
+                                label="Email"
+                                placeholder="Nhập Email của bạn"
+                                required
+                                value={email}
+                                onChange={handleEmailChange}
+                            />
                         </div>
                         <div className={cx('input-password')}>
-                            <InputField label="Mật khẩu" placeholder="Nhập mật khẩu của bạn" required />
+                            <InputField
+                                label="Mật khẩu"
+                                placeholder="Nhập mật khẩu của bạn"
+                                required
+                                type="password"
+                                value={password}
+                                onChange={handlePasswordChange}
+                            />
                         </div>
                     </div>
 
@@ -62,16 +87,15 @@ const LoginForm = () => {
                             Đăng nhập
                         </button>
                         <p>hoặc tiếp tục với</p>
-                        {/* <button className={cx('btn-new')} onClick={() => navigate('/register')}></button> */}
                         <Link to="/register" className={cx('btn-new')}>
                             <img src="/images/user-add-icon.svg" alt="" />
                             <span>Tạo tài khoản mới</span>
                         </Link>
-                        <button className={cx('btn-google')}>
+                        <button type="button" className={cx('btn-google')}>
                             <img src="/images/google-icon.svg" alt="" />
                             <span>Đăng nhập với Google</span>
                         </button>
-                        <button className={cx('btn-facebook')}>
+                        <button type="button" className={cx('btn-facebook')}>
                             <img src="/images/facebook-icon.svg" alt="" />
                             <span>Đăng nhập với Facebook</span>
                         </button>
@@ -81,5 +105,4 @@ const LoginForm = () => {
         </div>
     );
 };
-
 export default LoginForm;
