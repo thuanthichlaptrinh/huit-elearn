@@ -3,8 +3,8 @@ import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { Link, NavLink } from 'react-router-dom';
 
-import logo from '../../assets/images/logo.svg';
-import avatar from '../../assets/images/student-photo.png';
+import logo from '../../../assets/images/logo.svg';
+import avatar from '../../../assets/images/student-photo.png';
 
 const cx = classNames.bind(styles);
 

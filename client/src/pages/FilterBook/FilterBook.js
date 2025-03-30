@@ -3,9 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import queryString from 'query-string';
 import classNames from 'classnames/bind';
 import styles from './FilterBook.module.scss';
-import SearchBar from '../SearchBar/SearchBar';
-import CheckboxGroup from '../CheckboxGroup/CheckboxGroup';
-import Dropdown from '../Dropdown';
+import SearchBar from '../../components/SearchBar/SearchBar';
+import CheckboxGroup from '../../components/CheckboxGroup/CheckboxGroup';
+import Dropdown from '../../components/Dropdown';
 
 const cx = classNames.bind(styles);
 
