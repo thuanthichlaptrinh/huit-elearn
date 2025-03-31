@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import queryString from 'query-string';
 import classNames from 'classnames/bind';
-import styles from './FilterBook.module.scss';
+import styles from './FilterDepartment.module.scss';
 import SearchBar from '../../layouts/components/SearchBar';
 import CheckboxGroup from '../../components/CheckboxGroup/CheckboxGroup';
 import Dropdown from '../../components/Dropdown';
 
 const cx = classNames.bind(styles);
 
-const FilterBook = () => {
+const FilterDepartment = () => {
     const location = useLocation();
     const { keyword, course, subject, type } = queryString.parse(location.search);
 
@@ -175,4 +175,4 @@ const FilterBook = () => {
     );
 };
 
-export default FilterBook;
+export default FilterDepartment;

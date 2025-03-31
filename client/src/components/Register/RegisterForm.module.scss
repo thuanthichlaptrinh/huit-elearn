@@ -194,7 +194,7 @@
 
 .otp-message {
     color: var(--text-color) !important;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     margin-top: 14px;
     margin-bottom: -8px;
@@ -220,5 +220,20 @@
     &:hover,
     svg:hover {
         color: #0404a698;
+    }
+}
+
+.success-create {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+
+    margin-top: 30px;
+    margin-bottom: 50px;
+
+    p {
+        color: var(--text-color);
     }
 }

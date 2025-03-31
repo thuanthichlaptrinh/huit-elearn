@@ -11,12 +11,14 @@ import RegisterPage from '../pages/RegisterPage/RegisterPage';
 import UploadDocument from '../pages/UploadDocument/UploadDocument';
 import InfomationPage from '../pages/InfomationPage/InfomationPage';
 import HeaderOnly from '../layouts/HeaderOnly/HeaderOnly';
-import FilterBook from '../pages/FilterBook/FilterBook';
+import FilterDepartment from '../pages/FilterDepartment/FilterDepartment';
+import FilterSubject from '../pages/FilterSubject/FilterSubject';
 
 // Sử dụng cho những route không cần đăng nhập nhưng vẫn xem được
 const publicRoutes = [
     { path: config.routes.home, component: Home },
-    { path: config.routes.filter, component: FilterBook },
+    { path: config.routes.filterDepartment, component: FilterDepartment },
+    { path: config.routes.filterSubject, component: FilterSubject },
     { path: config.routes.detail, component: DetailBook },
     { path: config.routes.blog, component: Blog },
     { path: config.routes.createtest, component: CreateTest },

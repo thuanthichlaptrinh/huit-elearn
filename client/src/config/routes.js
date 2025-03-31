@@ -1,6 +1,7 @@
 const routes = {
     home: '/',
-    filter: '/filter',
+    filterDepartment: '/filterDepartment',
+    filterSubject: '/filterSubject',
     detail: '/detail',
     blog: '/blog',
     createtest: '/createtest',

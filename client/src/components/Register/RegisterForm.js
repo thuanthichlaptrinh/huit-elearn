@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './RegisterForm.module.scss';
 import classNames from 'classnames/bind';
 import InputField from '../InputField/InputField';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faPhone } from '@fortawesome/free-solid-svg-icons';
 
@@ -14,9 +14,20 @@ const RegisterForm = () => {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
-    // const [confirmPassword, setConfirmPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [showPassword, setShowPassword] = useState(false); // Thêm state để kiểm soát hiển thị mật khẩu
+    const navigate = useNavigate();
+
+    // Quay về trang login sau khi tạo tk thành công
+    useEffect(() => {
+        if (step === 4) {
+            const redirectTimer = setTimeout(() => {
+                navigate('/login');
+            }, 1000); // 1,5s
+
+            return () => clearTimeout(redirectTimer);
+        }
+    }, [step, navigate]);
 
     // Handle email submission
     const handleEmailSubmit = (e) => {
@@ -25,7 +36,7 @@ const RegisterForm = () => {
             setErrorMessage('Vui lòng nhập email của bạn');
             return;
         }
-        // Here you would normally call an API to send OTP
+        // Gọi API để gửi OTP
         console.log('Sending OTP to:', email);
         setStep(2);
         setErrorMessage('');
@@ -38,7 +49,7 @@ const RegisterForm = () => {
             setErrorMessage('Vui lòng nhập mã OTP');
             return;
         }
-        // Here you would normally verify OTP with an API
+
         console.log('Verifying OTP:', otp);
         setStep(3);
         setErrorMessage('');
@@ -47,26 +58,23 @@ const RegisterForm = () => {
     // Handle password setup
     const handlePasswordSubmit = (e) => {
         e.preventDefault();
+
         if (!password) {
             setErrorMessage('Vui lòng nhập mật khẩu');
             return;
         }
 
-        // if (password !== confirmPassword) {
-        //     setErrorMessage('Mật khẩu không khớp');
-        //     return;
-        // }
-
-        // Here you would normally create account with an API
+        // Gọi API để gửi OTP
         console.log('Creating account with email:', email, 'and password:', password);
-        // Redirect to login page or dashboard
+
+        // Chuyển hướng đến trang xác nhận đăng ký thành công
+        setStep(4);
         setErrorMessage('');
     };
 
-    // Resend OTP functionality
+    // Chức năng gửi lại OTP
     const handleResendOtp = () => {
         console.log('Resending OTP to:', email);
-        // Here you would call API to resend OTP
     };
 
     // Hàm để chuyển đổi hiển thị mật khẩu
@@ -74,7 +82,6 @@ const RegisterForm = () => {
         setShowPassword(!showPassword);
     };
 
-    // Render different form content based on current step
     const renderFormContent = () => {
         switch (step) {
             case 1:
@@ -215,6 +222,34 @@ const RegisterForm = () => {
                             <button type="submit" className={cx('btn-login')} onClick={handlePasswordSubmit}>
                                 Tiếp tục
                             </button>
+                            <p>hoặc tiếp tục với</p>
+                            <Link to="/login" className={cx('btn-new')}>
+                                <img src="/images/login-icon.svg" alt="" />
+                                <span>Đăng nhập tài khoản</span>
+                            </Link>
+                            <button className={cx('btn-google')}>
+                                <img src="/images/google-icon.svg" alt="" />
+                                <span>Đăng nhập với Google</span>
+                            </button>
+                            <button className={cx('btn-facebook')}>
+                                <img src="/images/facebook-icon.svg" alt="" />
+                                <span>Đăng nhập với Facebook</span>
+                            </button>
+                        </div>
+                    </>
+                );
+            case 4:
+                return (
+                    <>
+                        <p className={cx('wellcome')}>Chào mừng bạn đến với HUIT E-LEARN !</p>
+                        <h4>Tạo tài khoản mới</h4>
+
+                        <div className={cx('success-create')}>
+                            <img src="/images/success-icon.svg" alt="" />
+                            <p>Tạo tài khoản thành công, vui lòng đợi vài giây !</p>
+                        </div>
+
+                        <div className={cx('form-btn')}>
                             <p>hoặc tiếp tục với</p>
                             <Link to="/login" className={cx('btn-new')}>
                                 <img src="/images/login-icon.svg" alt="" />
