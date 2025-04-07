@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import queryString from 'query-string';
 import classNames from 'classnames/bind';
@@ -6,17 +6,22 @@ import styles from './FilterSubject.module.scss';
 import SearchBar from '../../layouts/components/SearchBar';
 import CheckboxGroup from '../../components/CheckboxGroup/CheckboxGroup';
 import Dropdown from '../../components/Dropdown';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { db } from '../../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
 
 const cx = classNames.bind(styles);
 
+// Thời gian cache (1 giờ = 60 phút * 60 giây * 1000 milliseconds)
+const CACHE_DURATION = 60 * 60 * 1000;
+
 const FilterSubject = () => {
     const location = useLocation();
-    const { keyword, course, subject, type } = queryString.parse(location.search);
-    const [clickedItems, setClickedItems] = useState(new Set());
-
+    const { keyword, course } = queryString.parse(location.search); // Nhận query parameter 'keyword' và 'course'
     const [selectedItems, setSelectedItems] = useState([]);
+    const [subjectsList, setSubjectsList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [cachedImages, setCachedImages] = useState({});
 
     const options = [
         { value: 'option1', label: 'Tất cả' },
@@ -26,83 +31,129 @@ const FilterSubject = () => {
         { value: 'option5', label: 'PPT' },
     ];
 
-    // Dummy data, thay thế bằng dữ liệu thật từ API
-    const [searchResults, setSearchResults] = useState([
-        {
-            id: 1,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-        {
-            id: 2,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-        {
-            id: 3,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-        {
-            id: 4,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-        {
-            id: 5,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-        {
-            id: 6,
-            title: 'Giới thiệu lập trình di động',
-            subject: 'Lập trình di động',
-            department: 'Khoa Công nghệ Thông tin',
-            imageUrl: '/images/sack-laptrinhdidong.png',
-            postTime: '30/09/2024',
-            douwloads: 90,
-            type: 'word',
-        },
-    ]);
-
     const [sortOrder, setSortOrder] = useState('newest');
-    const [selectedTypes, setSelectedTypes] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
+
+    // Hàm kiểm tra và lấy dữ liệu từ localStorage
+    const getCachedData = () => {
+        const cached = localStorage.getItem('subjectsList');
+        const cachedTimestamp = localStorage.getItem('subjectsListTimestamp');
+        const cachedImagesData = localStorage.getItem('cachedImages');
+
+        if (cached && cachedTimestamp) {
+            const currentTime = new Date().getTime();
+            const timeDifference = currentTime - parseInt(cachedTimestamp, 10);
+
+            if (timeDifference < CACHE_DURATION) {
+                const subjectsData = JSON.parse(cached);
+                const imagesData = cachedImagesData ? JSON.parse(cachedImagesData) : {};
+                setCachedImages(imagesData);
+                return subjectsData;
+            }
+        }
+        return null;
+    };
+
+    // Hàm lưu dữ liệu vào localStorage
+    const setCachedData = (data) => {
+        localStorage.setItem('subjectsList', JSON.stringify(data));
+        localStorage.setItem('subjectsListTimestamp', new Date().getTime().toString());
+        localStorage.setItem('cachedImages', JSON.stringify(cachedImages));
+    };
+
+    // Hàm tải và cache hình ảnh
+    const cacheImage = async (imageUrl, itemId) => {
+        if (cachedImages[itemId]) {
+            return cachedImages[itemId];
+        }
+
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const reader = new FileReader();
+
+            return new Promise((resolve) => {
+                reader.onloadend = () => {
+                    const base64data = reader.result;
+                    setCachedImages((prev) => ({
+                        ...prev,
+                        [itemId]: base64data,
+                    }));
+                    resolve(base64data);
+                };
+                reader.readAsDataURL(blob);
+            });
+        } catch (err) {
+            console.error(`Lỗi khi tải hình ảnh ${imageUrl}:`, err);
+            return imageUrl;
+        }
+    };
+
+    // Lấy dữ liệu từ Firestore
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // Bước 1: Lấy toàn bộ faculties trước và lưu vào facultiesMap
+                const facultiesCollection = collection(db, 'faculties');
+                const facultiesSnapshot = await getDocs(facultiesCollection);
+                const facultiesMap = {};
+
+                facultiesSnapshot.docs.forEach((doc) => {
+                    const data = doc.data();
+                    facultiesMap[data.MaKhoa] = data;
+                });
+
+                // Bước 2: Lấy toàn bộ subjects và lưu vào subjectsList
+                const subjectsCollection = collection(db, 'subjects');
+                const subjectsSnapshot = await getDocs(subjectsCollection);
+
+                const subjectsData = [];
+                for (const docSnapshot of subjectsSnapshot.docs) {
+                    const data = docSnapshot.data();
+
+                    const facultyId = data.MaKhoa || 'unknown';
+                    const facultyData = facultiesMap[facultyId] || {};
+                    if (!facultiesMap[facultyId]) {
+                        console.warn(`Không tìm thấy khoa với MaKhoa: ${facultyId}`);
+                    }
+                    const facultyName = facultyData.TenKhoa || 'Khoa không xác định';
+
+                    const imageUrl = data.AnhMon || '/images/no-image.jpg';
+                    const cachedImage = await cacheImage(imageUrl, docSnapshot.id);
+
+                    subjectsData.push({
+                        id: docSnapshot.id,
+                        title: data.TenMH || 'Môn học không xác định',
+                        department: facultyName,
+                        imageUrl: cachedImage,
+                    });
+                }
+
+                setCachedData(subjectsData);
+                setSubjectsList(subjectsData);
+                setLoading(false);
+            } catch (err) {
+                setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+                setLoading(false);
+                console.error('Lỗi khi lấy dữ liệu:', err);
+            }
+        };
+
+        const cachedData = getCachedData();
+        if (cachedData) {
+            setSubjectsList(cachedData);
+            setLoading(false);
+        } else {
+            fetchData();
+        }
+    }, []);
 
     // Hàm xử lý thay đổi sắp xếp
     const handleSortChange = (e) => {
         setSortOrder(e.target.value);
-    };
-
-    // Hàm xử lý lọc loại tài liệu
-    const handleTypeChange = (type) => {
-        setSelectedTypes((prev) => (prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]));
     };
 
     // Hàm xử lý chuyển trang
@@ -110,22 +161,33 @@ const FilterSubject = () => {
         setCurrentPage(page);
     };
 
-    const handleClickHeart = (id) => {
-        setClickedItems((prevClickedItems) => {
-            const newClickedItems = new Set(prevClickedItems);
-            if (newClickedItems.has(id)) {
-                newClickedItems.delete(id); // Nếu đã nhấn thì bỏ chọn
-            } else {
-                newClickedItems.add(id); // Nếu chưa nhấn thì thêm vào
-            }
-            return newClickedItems;
-        });
-    };
+    // Lọc dữ liệu dựa trên query params (keyword, course)
+    const filteredResults = subjectsList.filter((item) => {
+        const keywordMatch = keyword ? item.title.toLowerCase().includes(keyword.toLowerCase()) : true;
+        const courseMatch = course ? item.department.toLowerCase().includes(course.toLowerCase()) : true;
+        return keywordMatch && courseMatch;
+    });
+
+    // Sắp xếp dữ liệu (dựa trên sortOrder)
+    const sortedResults = [...filteredResults].sort((a, b) => {
+        if (sortOrder === 'newest') {
+            return b.id.localeCompare(a.id);
+        }
+        return a.id.localeCompare(b.id);
+    });
 
     // Tính toán index của item đầu và cuối trên trang hiện tại
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = searchResults.slice(indexOfFirstItem, indexOfLastItem);
+    const currentItems = sortedResults.slice(indexOfFirstItem, indexOfLastItem);
+
+    if (loading) {
+        return <div>Đang tải dữ liệu...</div>;
+    }
+
+    if (error) {
+        return <div>{error}</div>;
+    }
 
     return (
         <>
@@ -135,8 +197,7 @@ const FilterSubject = () => {
                 </div>
 
                 <div className={cx('results-link')}>
-                    <Link to="/">Trang chủ</Link> / <Link>Công nghệ thông tin</Link> / <Link>Lập trình di động</Link> /
-                    <Link>Sắp xếp theo ngày gần nhất</Link>
+                    <Link to="/">Trang chủ</Link> / <Link>Môn học</Link> / <Link>Sắp xếp theo ngày gần nhất</Link>
                 </div>
 
                 <div className={cx('results-content')}>
@@ -144,14 +205,14 @@ const FilterSubject = () => {
                         <div className={cx('results-list')}>
                             <div className={cx('results-header')}>
                                 <p className={cx('results-title')}>
-                                    Có <span>128</span> kết quả phù hợp
+                                    Có <span>{filteredResults.length}</span> môn học phù hợp{' '}
+                                    {course ? `thuộc khoa ${course}` : ''}
                                 </p>
-
                                 <div className={cx('results-dropdow')}>
                                     <span>Sắp xếp theo</span>
                                     <Dropdown
                                         options={['Ngày đăng gần nhất', 'Filter 2', 'Filter 3']}
-                                        label="Ngày đăng gần nhất"
+                                        onChange={handleSortChange}
                                     />
                                 </div>
                             </div>
@@ -159,34 +220,18 @@ const FilterSubject = () => {
                             {currentItems.map((item) => (
                                 <div key={item.id} className={cx('book-item')}>
                                     <div className={cx('book-img')}>
-                                        <img src={item.imageUrl} alt={item.title} className={cx('book-thumbnail')} />
-                                        <button className={cx('btn-heart')} onClick={() => handleClickHeart(item.id)}>
-                                            <FontAwesomeIcon
-                                                icon={faHeart}
-                                                style={{ color: clickedItems.has(item.id) ? 'red' : '#B3B3B3' }}
-                                            />
-                                        </button>
+                                        <img
+                                            src={item.imageUrl}
+                                            alt={item.title}
+                                            className={cx('book-thumbnail')}
+                                            onError={(e) => {
+                                                e.target.src = '/images/no-image.jpg';
+                                            }}
+                                        />
                                     </div>
                                     <div className={cx('book-info')}>
                                         <p className={cx('book-department')}>{item.department}</p>
                                         <h3 className={cx('book-title')}>{item.title}</h3>
-                                        <div className={cx('book-subject')}>
-                                            <span>Môn</span>
-                                            <p>{item.subject}</p>
-                                        </div>
-                                        <div className={cx('book-type')}>{item.type}</div>
-                                        <div className={cx('book-time')}>
-                                            <img src="/images/clock-icon.svg" alt="" />
-                                            <span>{item.postTime}</span>
-                                        </div>
-                                        <div className={cx('book-dowload')}>
-                                            <img src="/images/arrow-down-circle.svg" alt="" />
-                                            <span>{item.douwloads}</span>
-                                        </div>
-
-                                        <button className={cx('btn-dot')}>
-                                            <img src="/images/dots-icon.svg" alt="" />
-                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -194,7 +239,7 @@ const FilterSubject = () => {
 
                         <div className={cx('pagination')}>
                             {Array.from(
-                                { length: Math.ceil(searchResults.length / itemsPerPage) },
+                                { length: Math.ceil(filteredResults.length / itemsPerPage) },
                                 (_, i) => i + 1,
                             ).map((page) => (
                                 <button
@@ -210,7 +255,7 @@ const FilterSubject = () => {
 
                     <div className={cx('filter-section')}>
                         <p>
-                            <img src="/images/Filter.svg" alt="" />
+                            <img src="/images/Filter.svg" alt="Filter Icon" />
                             <span>Lọc kết quả nhanh</span>
                         </p>
                         <div
@@ -223,7 +268,7 @@ const FilterSubject = () => {
                             }}
                         >
                             <span>Loại</span>
-                            <img src="/images/Down_fill.svg" alt="" />
+                            <img src="/images/Down_fill.svg" alt="Dropdown Icon" />
                         </div>
                         <div className={cx('filter-checkbox')}>
                             <CheckboxGroup

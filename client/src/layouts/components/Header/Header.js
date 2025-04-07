@@ -1,18 +1,78 @@
-import React from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
-import { Link, NavLink } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // Thêm dòng này
-
 import logo from '../../../assets/images/logo.svg';
 import avatar from '../../../assets/images/student-photo.png';
+import { logout } from '../../../redux/slices/authSlide';
+import { auth } from '../../../firebase/config';
+import { signOut } from 'firebase/auth';
 
 const cx = classNames.bind(styles);
 
 function Header() {
-    // Lấy trạng thái đăng nhập từ Redux store
-    const { isLoggedIn } = useSelector((state) => state.auth);
-    const currentUser = isLoggedIn;
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { isLoggedIn, user } = useSelector((state) => state.auth);
+
+    const handleLogout = async (event) => {
+        event.preventDefault();
+        const confirmLogout = window.confirm('Bạn có chắc chắn muốn đăng xuất?');
+        if (confirmLogout) {
+            try {
+                await signOut(auth); // Đăng xuất khỏi Firebase
+                dispatch(logout()); // Cập nhật Redux store
+                navigate('/login');
+            } catch (error) {
+                console.error('Lỗi đăng xuất:', error);
+            }
+        }
+    };
+
+    const renderLoggedOutMenu = () => (
+        <div className={cx('menu-content')}>
+            <div className={cx('menu-item')}>
+                <Link to="/login">
+                    <img src="/images/login-icon.svg" alt="" />
+                    <span>Đăng nhập</span>
+                </Link>
+            </div>
+            <div className={cx('menu-item')}>
+                <Link to="/register">
+                    <img src="/images/user-add-icon.svg" alt="" />
+                    <span>Tạo tài khoản</span>
+                </Link>
+            </div>
+        </div>
+    );
+
+    const renderLoggedInMenu = () => (
+        <div className={cx('menu-content')}>
+            <div className={cx('menu-header')}>
+                Xin chào <span>{user?.email || 'Người dùng'}</span>
+            </div>
+            <div className={cx('menu-item')}>
+                <Link to="/profile">
+                    <img src="/images/user-add-icon.svg" alt="" />
+                    <span>Thông tin</span>
+                </Link>
+            </div>
+            <div className={cx('menu-item')}>
+                <Link to="/list-favourite">
+                    <img src="/images/heart-icon.svg" alt="" />
+                    <span>Yêu thích</span>
+                </Link>
+            </div>
+            <div className={cx('menu-item')}>
+                <Link to="/logout" onClick={handleLogout}>
+                    <img src="/images/logout-icon.svg" alt="" />
+                    <span>Đăng xuất</span>
+                </Link>
+            </div>
+        </div>
+    );
 
     return (
         <header className={cx('wrapper')}>
@@ -44,13 +104,24 @@ function Header() {
                         <img className={cx('notification-icon')} src="/images/Bell.svg" alt="" />
                         <span className={cx('notification-count')}>2</span>
                     </div>
-                    <div className={cx('user-avatar')}>
-                        {currentUser ? (
-                            <img className={cx('true')} src={avatar} alt=" " />
-                        ) : (
-                            <img className={cx('false')} src="/images/user-icon.svg" alt="" />
-                        )}
-                    </div>
+
+                    <Tippy
+                        delay={[0, 200]}
+                        interactive={true}
+                        placement="bottom-end"
+                        content={isLoggedIn ? renderLoggedInMenu() : renderLoggedOutMenu()}
+                        trigger="click"
+                        hideOnClick={true}
+                        onClickOutside={(instance) => instance.hide()}
+                    >
+                        <div className={cx('user-avatar')}>
+                            {isLoggedIn ? (
+                                <img className={cx('true')} src={avatar} alt=" " />
+                            ) : (
+                                <img className={cx('false')} src="/images/user-icon.svg" alt="" />
+                            )}
+                        </div>
+                    </Tippy>
                 </div>
             </div>
         </header>

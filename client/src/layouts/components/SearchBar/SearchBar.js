@@ -17,7 +17,7 @@ function SearchBar() {
         const queryString = `?keyword=${keyword}&course=${course}&subject=${subject}&type=${type}`;
 
         // Điều hướng đến trang FilterBook với query string
-        navigate(`/filter${queryString}`);
+        navigate(`/filterDepartment${queryString}`);
     };
 
     return (

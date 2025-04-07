@@ -1,5 +1,7 @@
 # Dự án HUIT E-Learn
 
+# Client
+
 ## Tạo cấu trúc dự án
 
 ## Thư viện sử dụng
@@ -23,3 +25,14 @@
 ### Thêm thư viện Icon
 
     -   Lệnh: `npm install lucide-react`
+
+### Redux
+
+    -   `npm install redux react-redux @reduxjs/toolkit`
+
+# Server
+
+    - npm init --yes
+    - npm install --save @apollo/server express http cors body-parser
+    - npm i nodemon
+    - npm install firebase

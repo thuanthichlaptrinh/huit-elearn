@@ -38,9 +38,6 @@ function AccessSteps() {
             <div className={cx('steps-container')}>
                 {steps.map((step) => (
                     <button key={step.id} className={cx('step')}>
-                        <div className={cx('step-icon')}>
-                            <img src={step.icon} alt={step.id} />
-                        </div>
                         <im className={cx('step-number')}>{step.id}.</im>
                         <div className={cx('step-title')}>{step.title}</div>
                     </button>

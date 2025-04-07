@@ -52,7 +52,14 @@ const CreateTest = () => {
             <div className={cx('link')}>
                 <Link to="/">Trang chủ</Link> / <Link to="#">Tạo bài kiểm tra ngẫu nhiên</Link>
             </div>
-            <Container className={cx('form-test')}>
+            <Container
+                className={cx('form-test')}
+                sx={{
+                    '& .MuiBox-root': {
+                        boxShadow: '0px 1px 3px 0px rgba(0,0,0,0.12)',
+                    },
+                }}
+            >
                 <Box
                     component="form"
                     onSubmit={handleSubmit}
@@ -132,37 +139,6 @@ const CreateTest = () => {
                             <MenuItem value="laptrinhweb">Lập trình web</MenuItem>
                             <MenuItem value="cautrucdulieuthuattoan">Cấu trúc dữ liệu và thuật toán</MenuItem>
                             <MenuItem value="kinhtevimomacro">Kinh tế vi mô và macro</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                        <InputLabel
-                            sx={{
-                                color: 'rgba(0, 0, 0, 0.6)', // Màu label mặc định
-                                '&.Mui-focused': {
-                                    color: '#00008b', // Màu label khi focus
-                                },
-                            }}
-                        >
-                            Chương
-                        </InputLabel>
-                        <Select
-                            name="chapter"
-                            value={formData.chapter}
-                            label="Chương"
-                            onChange={handleChange}
-                            MenuProps={menuProps}
-                            sx={{
-                                backgroundColor: '#fff',
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#00008b', // Màu viền khi focus
-                                    borderWidth: '2px', // Tăng độ dày viền khi focus (tuỳ chọn)
-                                },
-                            }}
-                        >
-                            <MenuItem value="chapter1">Chương 1</MenuItem>
-                            <MenuItem value="chapter2">Chương 2</MenuItem>
-                            <MenuItem value="chapter3">Chương 3</MenuItem>
                         </Select>
                     </FormControl>
 

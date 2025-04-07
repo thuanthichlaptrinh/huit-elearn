@@ -5,11 +5,15 @@ import NotFound from './components/NotFound';
 import DefaultLayout from './layouts/DefaultLayout/DefaultLayout';
 import { store } from './redux/store';
 import { publicRoutes } from './routes/routes';
+import ChatBox from './layouts/components/Chatbox/Chatbox';
+import ScrollToTop from './components/ScrollToTop/ScrollToTop';
+import AuthProvider from './context/AuthProvider';
 
 function App() {
     return (
         <Provider store={store}>
             <Router>
+                <AuthProvider />
                 <Routes>
                     {publicRoutes.map((route, index) => {
                         const Page = route.component;
@@ -44,6 +48,11 @@ function App() {
                         }
                     />
                 </Routes>
+
+                <div>
+                    <ScrollToTop />
+                    <ChatBox />
+                </div>
             </Router>
         </Provider>
     );

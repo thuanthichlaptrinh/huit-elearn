@@ -3,75 +3,10 @@ import classNames from 'classnames/bind';
 import styles from './Blog.module.scss';
 
 // Sample data for the blog posts (you can replace this with API data later)
-const blogPosts = [
-    {
-        id: 1,
-        title: 'Cập nhật tài liệu mới nhất',
-        date: '12/04/2024',
-        views: 13923,
-        image: 'https://via.placeholder.com/600x400', // Replace with actual image URL
-        description:
-            'Tài liệu đã được cập nhật với nội dung mới nhất, bổ sung thông tin quan trọng và chính sửa các nội dung cần thiết để đảm bảo tính chính xác và đầy đủ. Phiên bản mới bao gồm các cải tiến về bố cục, bổ sung ví dụ thực tế và cập nhật theo công nghệ, phương pháp mới nhất trong lĩnh vực liên quan.',
-    },
-    {
-        id: 2,
-        title: 'Tài liệu học tập được sinh viên tìm kiếm nhiều nhất',
-        date: '25/07/2024',
-        views: 9235,
-        image: 'https://via.placeholder.com/150x150',
-        description: 'Tài liệu học tập được sinh viên tìm kiếm nhiều nhất.',
-    },
-    {
-        id: 3,
-        title: 'Mẹo quan lý và sắp xếp tài liệu hiệu quả',
-        date: '01/04/2024',
-        views: 6427,
-        image: 'https://via.placeholder.com/150x150',
-        description: 'Mẹo quan lý và sắp xếp tài liệu hiệu quả.',
-    },
-    {
-        id: 4,
-        title: 'Các chủ đề nghiên cứu hot hiện nay',
-        date: '22/09/2024',
-        views: 4621,
-        image: 'https://via.placeholder.com/150x150',
-        description: 'Các chủ đề nghiên cứu hot hiện nay.',
-    },
-];
+const blogPosts = [];
 
 // Sample data for the sidebar posts
-const sidebarPosts = [
-    {
-        id: 5,
-        title: 'Những cuốn sách hay giúp cải thiện tư duy logic',
-        date: '30/08/2024',
-        views: 90,
-    },
-    {
-        id: 6,
-        title: 'Tự học IELTS từ con số 0 – Lộ trình học tập hiệu quả trong 6 tháng',
-        date: '30/08/2024',
-        views: 90,
-    },
-    {
-        id: 7,
-        title: '5 phương pháp ghi nhớ hiệu quả cho học tập và làm việc',
-        date: '30/08/2024',
-        views: 90,
-    },
-    {
-        id: 8,
-        title: 'Cách quản lý thời gian hiệu quả cho sinh viên',
-        date: '30/08/2024',
-        views: 90,
-    },
-    {
-        id: 9,
-        title: 'Top 7 website miễn phí giúp bạn học lập trình từ cơ bản đến nâng cao',
-        date: '30/08/2024',
-        views: 90,
-    },
-];
+const sidebarPosts = [];
 
 const cx = classNames.bind(styles);
 

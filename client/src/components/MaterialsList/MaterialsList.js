@@ -1,42 +1,57 @@
 import React from 'react';
 import classNames from 'classnames/bind';
 import styles from './MaterialsList.module.scss';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import MaterialCard from '../MaterialCard';
 
 const cx = classNames.bind(styles);
 
-function MaterialsList() {
-    // Mock data
-    const materials = Array(8)
-        .fill()
-        .map((_, index) => ({
-            id: `material-${index}`,
-            image: '/images/student-photo.png',
-            title: 'Chương 2. Quản lý dự án phần mềm',
-            subject: {
-                id: 'cnpm',
-                name: 'Công nghệ phần mềm',
-            },
-            faculty: 'Khoa Công nghệ Thông tin',
-            type: 'PDF',
-        }));
+function MaterialsList({ materials = [], loading = false, error = null, navigateTo, type = 'document' }) {
+    const navigate = useNavigate(); // Sử dụng hook useNavigate để điều hướng
 
+    // Hiển thị khi đang tải
+    if (loading) {
+        return (
+            <div className={cx('wrapper')}>
+                <p>Đang tải...</p>
+            </div>
+        );
+    }
+
+    // Hiển thị khi có lỗi
+    if (error) {
+        return (
+            <div className={cx('wrapper')}>
+                <p>{error}</p>
+            </div>
+        );
+    }
+
+    // Hàm xử lý khi nhấn "Xem tất cả"
+    const handleViewAll = () => {
+        navigate(navigateTo);
+    };
+
+    // Hiển thị danh sách
     return (
         <div className={cx('wrapper')}>
             <div className={cx('materials-grid')}>
-                {materials.map((material) => (
-                    <div key={material.id} className={cx('grid-item')}>
-                        <MaterialCard data={material} />
-                    </div>
-                ))}
+                {materials.length > 0 ? (
+                    materials.map((item) => (
+                        <div key={item.id} className={cx('grid-item')}>
+                            <MaterialCard data={item} type={type} />
+                        </div>
+                    ))
+                ) : (
+                    <p>Không có dữ liệu để hiển thị.</p>
+                )}
             </div>
 
             <div className={cx('view-all')}>
-                <Link to="/materials" className={cx('view-all-btn')}>
+                <button className={cx('view-all-btn')} onClick={handleViewAll}>
                     Xem tất cả
-                    <img src="/images/Arrow_Right.svg" alt=" " />
-                </Link>
+                    <img src="/images/Arrow_Right.svg" alt="Arrow Right" />
+                </button>
             </div>
         </div>
     );
