@@ -14,16 +14,16 @@
     border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+
+    p {
+        font-size: 16px;
+        color: var(--primary);
+        font-family: Montserrat;
+    }
 }
 
 @keyframes spin {
     to {
         transform: rotate(360deg);
     }
-}
-
-p {
-    font-size: 16px;
-    color: var(--primary);
-    font-family: Montserrat;
 }

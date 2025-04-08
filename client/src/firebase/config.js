@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage'; // Thêm Firebase Storage
 
 const firebaseConfig = {
     apiKey: 'AIzaSyCDoswUUq5SZF2CBy_ULzihnsH43IhYmuw',
@@ -16,6 +17,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
-const db = getFirestore(app); // Khởi tạo Firestore
+const db = getFirestore(app);
+const storage = getStorage(app); // Khởi tạo Firebase Storage
 
-export { app, auth, googleProvider, facebookProvider, db };
+export { app, auth, googleProvider, facebookProvider, db, storage };

@@ -18,9 +18,12 @@ const cx = classNames.bind(styles);
 // Thời gian cache (1 giờ = 60 phút * 60 giây * 1000 milliseconds)
 const CACHE_DURATION = 60 * 60 * 1000;
 
+// Biến kiểm soát log (bật/tắt log trong môi trường production)
+const ENABLE_LOGS = process.env.NODE_ENV === 'development';
+
 const FilterDepartment = () => {
     const location = useLocation();
-    const { keyword, course, subject, type } = queryString.parse(location.search); // Nhận cả course và subject
+    const { keyword, course, subject, type } = queryString.parse(location.search);
     const [clickedItems, setClickedItems] = useState(new Set());
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const dropdownRefs = useRef({});
@@ -99,7 +102,9 @@ const FilterDepartment = () => {
                 reader.readAsDataURL(blob);
             });
         } catch (err) {
-            console.error(`Lỗi khi tải hình ảnh ${imageUrl}:`, err);
+            if (ENABLE_LOGS) {
+                console.error(`Lỗi khi tải hình ảnh ${imageUrl}:`, err);
+            }
             return imageUrl;
         }
     };
@@ -139,14 +144,18 @@ const FilterDepartment = () => {
 
                     const subjectData = subjectsMap[data.maMH] || {};
                     if (!subjectsMap[data.maMH]) {
-                        console.warn(`Không tìm thấy môn học với MaMH: ${data.maMH}`);
+                        if (ENABLE_LOGS) {
+                            console.warn(`Không tìm thấy môn học với MaMH: ${data.maMH}`);
+                        }
                     }
                     const subjectName = subjectData.TenMH || 'Môn học không xác định';
                     const facultyId = subjectData.MaKhoa || 'unknown';
 
                     const facultyData = facultiesMap[facultyId] || {};
                     if (!facultiesMap[facultyId]) {
-                        console.warn(`Không tìm thấy khoa với MaKhoa: ${facultyId}`);
+                        if (ENABLE_LOGS) {
+                            console.warn(`Không tìm thấy khoa với MaKhoa: ${facultyId}`);
+                        }
                     }
                     const facultyName = facultyData.TenKhoa || 'Khoa không xác định';
 
@@ -173,7 +182,9 @@ const FilterDepartment = () => {
             } catch (err) {
                 setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
                 setLoading(false);
-                console.error('Lỗi khi lấy dữ liệu:', err);
+                if (ENABLE_LOGS) {
+                    console.error('Lỗi khi lấy dữ liệu:', err);
+                }
             }
         };
 
@@ -277,7 +288,9 @@ const FilterDepartment = () => {
             return;
         }
 
-        console.log('Báo cáo:', { itemId: reportItemId, reason: reportReason, description: reportDescription });
+        if (ENABLE_LOGS) {
+            console.log('Báo cáo:', { itemId: reportItemId, reason: reportReason, description: reportDescription });
+        }
 
         showNotification('Báo cáo của bạn đã được gửi', 'success');
 
@@ -312,8 +325,8 @@ const FilterDepartment = () => {
     // Lọc dữ liệu dựa trên query params và selectedItems
     const filteredResults = searchResults.filter((item) => {
         const keywordMatch = keyword ? item.title.toLowerCase().includes(keyword.toLowerCase()) : true;
-        const courseMatch = course ? item.department.toLowerCase().includes(course.toLowerCase()) : true; // Lọc theo khoa
-        const subjectMatch = subject ? item.subject.toLowerCase().includes(subject.toLowerCase()) : true; // Lọc theo môn học
+        const courseMatch = course ? item.department.toLowerCase().includes(course.toLowerCase()) : true;
+        const subjectMatch = subject ? item.subject.toLowerCase().includes(subject.toLowerCase()) : true;
         const typeMatch =
             selectedItems.length === 0 || selectedItems.includes('option1')
                 ? true
@@ -365,7 +378,7 @@ const FilterDepartment = () => {
                 </div>
 
                 <div className={cx('results-link')}>
-                    <Link to="/">Trang chủ</Link> / <Link>Công nghệ thông tin</Link> /{' '}
+                    <Link to="/">Trang chủ</Link> / <Link>{course || 'Công nghệ thông tin'}</Link> /{' '}
                     <Link>Sắp xếp theo ngày gần nhất</Link>
                 </div>
 

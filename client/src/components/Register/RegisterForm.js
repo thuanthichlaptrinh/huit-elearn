@@ -8,7 +8,7 @@ import { faEye, faEyeSlash, faPhone } from '@fortawesome/free-solid-svg-icons';
 import { auth, googleProvider, facebookProvider } from '../../firebase/config';
 import { createUserWithEmailAndPassword, signInWithPopup, sendEmailVerification } from 'firebase/auth';
 import { useDispatch } from 'react-redux';
-import { login } from '../../redux/slices/authSlide';
+import { login } from '../../redux/slices/authSlice';
 
 const cx = classNames.bind(styles);
 
@@ -197,17 +197,6 @@ const RegisterForm = () => {
                             <button type="submit" className={cx('btn-login')} onClick={handleEmailSubmit}>
                                 Tiếp tục
                             </button>
-                            <p>hoặc tiếp tục với</p>
-                            <div className={cx('social-login')}>
-                                <button type="button" onClick={handleGoogleSignIn} className={cx('btn-social')}>
-                                    <img src="/images/google-icon.svg" alt="Google" />
-                                    Google
-                                </button>
-                                <button type="button" onClick={handleFacebookSignIn} className={cx('btn-social')}>
-                                    <img src="/images/facebook-icon.svg" alt="Facebook" />
-                                    Facebook
-                                </button>
-                            </div>
                             <Link to="/login" className={cx('btn-new')}>
                                 <img src="/images/login-icon.svg" alt="" />
                                 <span>Đăng nhập tài khoản</span>

@@ -16,7 +16,7 @@ const CACHE_DURATION = 60 * 60 * 1000;
 
 const FilterSubject = () => {
     const location = useLocation();
-    const { keyword, course } = queryString.parse(location.search); // Nhận query parameter 'keyword' và 'course'
+    const { keyword, course } = queryString.parse(location.search); // Lấy cả keyword và course
     const [selectedItems, setSelectedItems] = useState([]);
     const [subjectsList, setSubjectsList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -96,41 +96,33 @@ const FilterSubject = () => {
             try {
                 setLoading(true);
 
-                // Bước 1: Lấy toàn bộ faculties trước và lưu vào facultiesMap
+                // Lấy danh sách faculties
                 const facultiesCollection = collection(db, 'faculties');
                 const facultiesSnapshot = await getDocs(facultiesCollection);
                 const facultiesMap = {};
 
                 facultiesSnapshot.docs.forEach((doc) => {
                     const data = doc.data();
-                    facultiesMap[data.MaKhoa] = data;
+                    facultiesMap[data.MaKhoa] = data.TenKhoa;
                 });
 
-                // Bước 2: Lấy toàn bộ subjects và lưu vào subjectsList
+                // Lấy danh sách subjects
                 const subjectsCollection = collection(db, 'subjects');
                 const subjectsSnapshot = await getDocs(subjectsCollection);
-
                 const subjectsData = [];
-                for (const docSnapshot of subjectsSnapshot.docs) {
-                    const data = docSnapshot.data();
 
-                    const facultyId = data.MaKhoa || 'unknown';
-                    const facultyData = facultiesMap[facultyId] || {};
-                    if (!facultiesMap[facultyId]) {
-                        console.warn(`Không tìm thấy khoa với MaKhoa: ${facultyId}`);
-                    }
-                    const facultyName = facultyData.TenKhoa || 'Khoa không xác định';
-
+                subjectsSnapshot.docs.forEach((doc) => {
+                    const data = doc.data();
+                    const facultyName = facultiesMap[data.MaKhoa] || 'Khoa không xác định';
                     const imageUrl = data.AnhMon || '/images/no-image.jpg';
-                    const cachedImage = await cacheImage(imageUrl, docSnapshot.id);
 
                     subjectsData.push({
-                        id: docSnapshot.id,
+                        id: doc.id,
                         title: data.TenMH || 'Môn học không xác định',
                         department: facultyName,
-                        imageUrl: cachedImage,
+                        imageUrl: imageUrl,
                     });
-                }
+                });
 
                 setCachedData(subjectsData);
                 setSubjectsList(subjectsData);
@@ -161,11 +153,16 @@ const FilterSubject = () => {
         setCurrentPage(page);
     };
 
-    // Lọc dữ liệu dựa trên query params (keyword, course)
+    // Lọc dữ liệu dựa trên keyword hoặc course
     const filteredResults = subjectsList.filter((item) => {
-        const keywordMatch = keyword ? item.title.toLowerCase().includes(keyword.toLowerCase()) : true;
-        const courseMatch = course ? item.department.toLowerCase().includes(course.toLowerCase()) : true;
-        return keywordMatch && courseMatch;
+        if (keyword) {
+            // Khi có keyword (từ card-title), lọc chính xác theo tiêu đề
+            return item.title.toLowerCase() === keyword.toLowerCase();
+        } else if (course) {
+            // Khi có course (từ card-faculty), lọc theo khoa
+            return item.department.toLowerCase().includes(course.toLowerCase());
+        }
+        return true; // Nếu không có keyword hoặc course, hiển thị tất cả
     });
 
     // Sắp xếp dữ liệu (dựa trên sortOrder)
@@ -204,9 +201,9 @@ const FilterSubject = () => {
                     <div className={cx('results-body')}>
                         <div className={cx('results-list')}>
                             <div className={cx('results-header')}>
-                                <p className={cx('results-title')}>
-                                    Có <span>{filteredResults.length}</span> môn học phù hợp{' '}
-                                    {course ? `thuộc khoa ${course}` : ''}
+                                <p className={cx('results-title')} style={{ width: '510px' }}>
+                                    Có <span>{filteredResults.length}</span> môn học{' '}
+                                    {course ? `thuộc khoa "${course}"` : keyword ? `liên quan đến "${keyword}"` : ''}
                                 </p>
                                 <div className={cx('results-dropdow')}>
                                     <span>Sắp xếp theo</span>

@@ -6,7 +6,7 @@ import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import logo from '../../../assets/images/logo.svg';
 import avatar from '../../../assets/images/student-photo.png';
-import { logout } from '../../../redux/slices/authSlide';
+import { logout } from '../../../redux/slices/authSlice'; // Sửa authSlide thành authSlice
 import { auth } from '../../../firebase/config';
 import { signOut } from 'firebase/auth';
 
@@ -22,11 +22,21 @@ function Header() {
         const confirmLogout = window.confirm('Bạn có chắc chắn muốn đăng xuất?');
         if (confirmLogout) {
             try {
-                await signOut(auth); // Đăng xuất khỏi Firebase
-                dispatch(logout()); // Cập nhật Redux store
+                // Đăng xuất khỏi Firebase Authentication (nếu có)
+                await signOut(auth).catch((error) => {
+                    console.warn('Không có phiên Firebase Auth để đăng xuất:', error);
+                });
+
+                // Cập nhật Redux store và xóa localStorage
+                dispatch(logout());
+                localStorage.removeItem('accessToken');
                 navigate('/login');
             } catch (error) {
                 console.error('Lỗi đăng xuất:', error);
+                // Đảm bảo vẫn đăng xuất khỏi Redux và localStorage ngay cả khi Firebase Auth lỗi
+                dispatch(logout());
+                localStorage.removeItem('accessToken');
+                navigate('/login');
             }
         }
     };
@@ -51,10 +61,10 @@ function Header() {
     const renderLoggedInMenu = () => (
         <div className={cx('menu-content')}>
             <div className={cx('menu-header')}>
-                Xin chào <span>{user?.email || 'Người dùng'}</span>
+                Xin chào <span>{user?.TenNguoiDung || user?.email || 'Người dùng'}</span>
             </div>
             <div className={cx('menu-item')}>
-                <Link to="/profile">
+                <Link to="/infomation">
                     <img src="/images/user-add-icon.svg" alt="" />
                     <span>Thông tin</span>
                 </Link>
@@ -116,7 +126,7 @@ function Header() {
                     >
                         <div className={cx('user-avatar')}>
                             {isLoggedIn ? (
-                                <img className={cx('true')} src={avatar} alt=" " />
+                                <img className={cx('true')} src={user?.AnhDaiDien || avatar} alt="Avatar" />
                             ) : (
                                 <img className={cx('false')} src="/images/user-icon.svg" alt="" />
                             )}

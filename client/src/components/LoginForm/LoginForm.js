@@ -3,11 +3,12 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import styles from './LoginForm.module.scss';
 import classNames from 'classnames/bind';
-import { login } from '../../redux/slices/authSlide';
+import { login } from '../../redux/slices/authSlice';
 import InputField from '../InputField/InputField';
 import { Link } from 'react-router-dom';
-import { auth, googleProvider, facebookProvider } from '../../firebase/config';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { googleProvider, facebookProvider, db } from '../../firebase/config';
+import { signInWithPopup, getAuth } from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const cx = classNames.bind(styles);
 
@@ -18,18 +19,63 @@ const LoginForm = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Đăng nhập bằng Email và Password
+    // Đăng nhập bằng Email và Password từ Firestore
     const handleEmailLogin = async (e) => {
         e.preventDefault();
+        setErrorMessage(''); // Xóa thông báo lỗi cũ
+
+        // Kiểm tra định dạng email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setErrorMessage('Email không hợp lệ. Vui lòng nhập email đầy đủ (ví dụ: example@gmail.com).');
+            return;
+        }
+
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            const idToken = await user.getIdToken(); // Lấy ID token
-            dispatch(login({ email: user.email, uid: user.uid, token: idToken })); // Lưu token vào Redux
-            localStorage.setItem('accessToken', idToken); // Lưu token vào localStorage
+            // Truy vấn Firestore để tìm người dùng với email
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('Email', '==', email));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                setErrorMessage('Tài khoản không tồn tại. Vui lòng kiểm tra email hoặc đăng ký tài khoản mới.');
+                return;
+            }
+
+            // Lấy thông tin người dùng từ Firestore
+            let userData = null;
+            let userId = null;
+            querySnapshot.forEach((doc) => {
+                userData = doc.data();
+                userId = doc.id;
+            });
+
+            // Kiểm tra mật khẩu
+            if (userData.MatKhau !== password) {
+                setErrorMessage('Mật khẩu không đúng. Vui lòng thử lại.');
+                return;
+            }
+
+            // Tạo thông tin người dùng để lưu vào Redux
+            const userInfo = {
+                email: userData.Email,
+                uid: userId, // Sử dụng ID của tài liệu trong Firestore làm uid
+                AnhDaiDien: userData.AnhDaiDien || '',
+                GioiTinh: userData.GioiTinh || '',
+                MaNguoiDung: userData.MaNguoiDung || '',
+                NgaySinh: userData.NgaySinh || '',
+                Sdt: userData.Sdt || '',
+                TenNguoiDung: userData.TenNguoiDung || '',
+                VaiTro: userData.VaiTro || '',
+                token: 'custom-token-' + userId, // Tạo token giả để tương thích với hệ thống hiện tại
+            };
+
+            // Dispatch action login với thông tin người dùng
+            dispatch(login(userInfo));
+            localStorage.setItem('accessToken', userInfo.token); // Lưu token giả vào localStorage
             navigate('/');
         } catch (error) {
-            setErrorMessage('Email hoặc mật khẩu không đúng. Vui lòng thử lại.');
+            setErrorMessage('Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.');
             console.error('Lỗi đăng nhập:', error);
         }
     };
@@ -37,12 +83,35 @@ const LoginForm = () => {
     // Đăng nhập bằng Google
     const handleGoogleLogin = async () => {
         try {
+            const auth = getAuth();
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
-            const idToken = await user.getIdToken(); // Lấy ID token
-            dispatch(login({ email: user.email, uid: user.uid, token: idToken })); // Lưu token vào Redux
-            localStorage.setItem('accessToken', idToken); // Lưu token vào localStorage
-            console.log('Token: ' + idToken);
+            const idToken = await user.getIdToken();
+
+            // Lấy thông tin người dùng từ Firestore
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('Email', '==', user.email));
+            const querySnapshot = await getDocs(q);
+
+            let userInfo = { email: user.email, uid: user.uid, token: idToken };
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach((doc) => {
+                    const userData = doc.data();
+                    userInfo = {
+                        ...userInfo,
+                        AnhDaiDien: userData.AnhDaiDien || '',
+                        GioiTinh: userData.GioiTinh || '',
+                        MaNguoiDung: userData.MaNguoiDung || '',
+                        NgaySinh: userData.NgaySinh || '',
+                        Sdt: userData.Sdt || '',
+                        TenNguoiDung: userData.TenNguoiDung || '',
+                        VaiTro: userData.VaiTro || '',
+                    };
+                });
+            }
+
+            dispatch(login(userInfo));
+            localStorage.setItem('accessToken', idToken);
             navigate('/');
         } catch (error) {
             let message = 'Đăng nhập bằng Google thất bại. Vui lòng thử lại.';
@@ -61,12 +130,35 @@ const LoginForm = () => {
     // Đăng nhập bằng Facebook
     const handleFacebookLogin = async () => {
         try {
+            const auth = getAuth();
             const result = await signInWithPopup(auth, facebookProvider);
             const user = result.user;
-            const idToken = await user.getIdToken(); // Lấy ID token
-            dispatch(login({ email: user.email, uid: user.uid, token: idToken })); // Lưu token vào Redux
-            localStorage.setItem('accessToken', idToken); // Lưu token vào localStorage
-            console.log('Token: ' + idToken);
+            const idToken = await user.getIdToken();
+
+            // Lấy thông tin người dùng từ Firestore
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('Email', '==', user.email));
+            const querySnapshot = await getDocs(q);
+
+            let userInfo = { email: user.email, uid: user.uid, token: idToken };
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach((doc) => {
+                    const userData = doc.data();
+                    userInfo = {
+                        ...userInfo,
+                        AnhDaiDien: userData.AnhDaiDien || '',
+                        GioiTinh: userData.GioiTinh || '',
+                        MaNguoiDung: userData.MaNguoiDung || '',
+                        NgaySinh: userData.NgaySinh || '',
+                        Sdt: userData.Sdt || '',
+                        TenNguoiDung: userData.TenNguoiDung || '',
+                        VaiTro: userData.VaiTro || '',
+                    };
+                });
+            }
+
+            dispatch(login(userInfo));
+            localStorage.setItem('accessToken', idToken);
             navigate('/');
         } catch (error) {
             setErrorMessage('Đăng nhập bằng Facebook thất bại. Vui lòng thử lại.');

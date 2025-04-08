@@ -38,8 +38,8 @@ export default Alert;
 // const [showAlert, setShowAlert] = useState(true);
 // {showAlert && (
 //     <Alert
-//         message="This is an alert message!"
-//         type="info"
+//         message="Đổi mật khẩu thành công"
+//         type="success"
 //         showIcon
 //         onClose={() => setShowAlert(false)}
 //     />

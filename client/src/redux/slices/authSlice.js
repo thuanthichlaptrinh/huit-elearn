@@ -23,6 +23,7 @@ const authSlice = createSlice({
             // Xóa khỏi localStorage
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('user');
+            localStorage.removeItem('accessToken');
         },
     },
 });
