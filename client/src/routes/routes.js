@@ -1,7 +1,4 @@
-// config
 import config from '../config';
-
-// pagess
 import Blog from '../pages/Blog';
 import DetailBook from '../pages/DetailBook';
 import CreateTest from '../pages/CreateTest/CreateTest';
@@ -14,6 +11,9 @@ import HeaderOnly from '../layouts/HeaderOnly/HeaderOnly';
 import FilterDepartment from '../pages/FilterDepartment/FilterDepartment';
 import FilterSubject from '../pages/FilterSubject/FilterSubject';
 import Loading from '../pages/Loading/Loading';
+import Assignment from '../pages/Assignment/Assignment';
+import ConfirmTest from '../components/ConfirmTest/ConfirmTest';
+import MultipleChoice from '../pages/MultipleChoice/MultipleChoice';
 
 // Sử dụng cho những route không cần đăng nhập nhưng vẫn xem được
 const publicRoutes = [
@@ -28,6 +28,9 @@ const publicRoutes = [
     { path: config.routes.register, component: RegisterPage },
     { path: config.routes.infomation, component: InfomationPage, layout: HeaderOnly },
     { path: config.routes.loading, component: Loading },
+    { path: config.routes.confirmTest, component: ConfirmTest },
+    { path: config.routes.assignment, component: Assignment },
+    { path: config.routes.multipleChoice, component: MultipleChoice },
 ];
 
 // Sử dụng cho route bắt buộc đăng nhập mới xem được

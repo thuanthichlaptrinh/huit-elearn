@@ -10,6 +10,9 @@ const routes = {
     register: '/register',
     infomation: '/infomation',
     loading: '/loading',
+    assignment: '/assignment',
+    multipleChoice: '/multiple-choice',
+    confirmTest: '/confirm-test',
 };
 
 export default routes;

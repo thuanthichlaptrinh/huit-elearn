@@ -1,42 +1,145 @@
-import React, { useState } from 'react';
-import { Container, Box, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Container, Box, TextField, Select, MenuItem, FormControl, InputLabel, Button } from '@mui/material';
 import classNames from 'classnames/bind';
 import styles from './CreateTest.module.scss';
 import { Link } from 'react-router-dom';
+import { db } from '../../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
 
 const cx = classNames.bind(styles);
 
 const CreateTest = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         specialty: '',
+        specialtyName: '',
         subject: '',
-        chapter: '',
+        subjectName: '',
         difficulty: '',
         questionCount: '',
         testTime: '',
+        creationMethod: '',
     });
+    const [faculties, setFaculties] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [isConfirmMode, setIsConfirmMode] = useState(false);
+
+    // Lấy danh sách khoa từ Firestore
+    useEffect(() => {
+        const fetchFaculties = async () => {
+            try {
+                const facultiesSnapshot = await getDocs(collection(db, 'faculties'));
+                const facultiesList = facultiesSnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                setFaculties(facultiesList);
+            } catch (error) {
+                console.error('Lỗi khi lấy danh sách khoa:', error);
+            }
+        };
+        fetchFaculties();
+    }, []);
+
+    // Lấy danh sách môn học dựa trên khoa đã chọn
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            if (formData.specialty) {
+                try {
+                    const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
+                    const subjectsList = subjectsSnapshot.docs.map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }));
+                    const filteredSubjects = subjectsList.filter((subject) => subject.MaKhoa === formData.specialty);
+                    setSubjects(filteredSubjects);
+                } catch (error) {
+                    console.error('Lỗi khi lấy danh sách môn học:', error);
+                }
+            } else {
+                setSubjects([]);
+            }
+        };
+        fetchSubjects();
+    }, [formData.specialty]);
+
+    // Tự động cập nhật số lượng câu hỏi và thời gian dựa trên độ khó
+    useEffect(() => {
+        if (formData.difficulty) {
+            let questionCount, testTime;
+            switch (formData.difficulty) {
+                case 'easy':
+                    questionCount = 30;
+                    testTime = 20;
+                    break;
+                case 'medium':
+                    questionCount = 40;
+                    testTime = 35;
+                    break;
+                case 'hard':
+                    questionCount = 50;
+                    testTime = 60;
+                    break;
+                default:
+                    questionCount = '';
+                    testTime = '';
+            }
+            setFormData((prevState) => ({
+                ...prevState,
+                questionCount,
+                testTime,
+            }));
+        }
+    }, [formData.difficulty]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prevState) => ({
-            ...prevState,
-            [name]: value,
-        }));
+        if (name === 'specialty') {
+            const selectedFaculty = faculties.find((faculty) => faculty.MaKhoa === value);
+            setFormData((prevState) => ({
+                ...prevState,
+                specialty: value,
+                specialtyName: selectedFaculty ? selectedFaculty.TenKhoa : '',
+                subject: '',
+                subjectName: '',
+            }));
+        } else if (name === 'subject') {
+            const selectedSubject = subjects.find((subject) => subject.MaMH === value);
+            setFormData((prevState) => ({
+                ...prevState,
+                subject: value,
+                subjectName: selectedSubject ? selectedSubject.TenMH : '',
+            }));
+        } else {
+            setFormData((prevState) => ({
+                ...prevState,
+                [name]: value,
+            }));
+        }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Test creation data:', formData);
+        setIsConfirmMode(true);
     };
 
-    // Custom MenuProps to prevent layout shift
+    const handleStartTest = () => {
+        // Truyền dữ liệu formData qua state
+        navigate('/assignment', { state: formData });
+    };
+
+    const handleBackToCreate = () => {
+        setIsConfirmMode(false);
+    };
+
     const menuProps = {
         PaperProps: {
             style: {
-                width: 'auto', // Ensures the dropdown width matches the select
+                width: 'auto',
             },
         },
-        disableScrollLock: true, // Prevents scroll lock which can cause shifting
+        disableScrollLock: true,
         anchorOrigin: {
             vertical: 'bottom',
             horizontal: 'left',
@@ -77,93 +180,82 @@ const CreateTest = () => {
                         backgroundColor: '#EEEEFE',
                     }}
                 >
-                    <h3 className={cx('title')}>Tạo bài kiểm tra ngẫu nhiên</h3>
+                    <h3 className={cx('title')}>
+                        {isConfirmMode ? 'Xác nhận bài kiểm tra' : 'Tạo bài kiểm tra ngẫu nhiên'}
+                    </h3>
 
                     <FormControl fullWidth>
-                        <InputLabel
-                            sx={{
-                                color: 'rgba(0, 0, 0, 0.6)', // Màu label mặc định
-                                '&.Mui-focused': {
-                                    color: '#00008b', // Màu label khi focus
-                                },
-                            }}
-                        >
-                            Khoa chuyên ngành
-                        </InputLabel>
+                        <InputLabel>Khoa chuyên ngành</InputLabel>
                         <Select
                             name="specialty"
                             value={formData.specialty}
                             label="Khoa chuyên ngành"
                             onChange={handleChange}
                             MenuProps={menuProps}
+                            disabled={isConfirmMode}
                             sx={{
                                 backgroundColor: '#fff',
-
                                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#00008b', // Màu viền khi focus
-                                    borderWidth: '2px', // Tăng độ dày viền khi focus (tuỳ chọn)
+                                    borderColor: '#00008b',
+                                    borderWidth: '2px',
                                 },
                             }}
                         >
-                            <MenuItem value="cntt">Công nghệ thông tin</MenuItem>
-                            <MenuItem value="kinhte">Kinh tế</MenuItem>
-                            <MenuItem value="marketing">Marketing</MenuItem>
+                            {isConfirmMode ? (
+                                <MenuItem value={formData.specialty}>{formData.specialtyName}</MenuItem>
+                            ) : (
+                                faculties.map((faculty) => (
+                                    <MenuItem key={faculty.id} value={faculty.MaKhoa}>
+                                        {faculty.TenKhoa}
+                                    </MenuItem>
+                                ))
+                            )}
                         </Select>
                     </FormControl>
 
                     <FormControl fullWidth>
-                        <InputLabel
-                            sx={{
-                                color: 'rgba(0, 0, 0, 0.6)', // Màu label mặc định
-                                '&.Mui-focused': {
-                                    color: '#00008b', // Màu label khi focus
-                                },
-                            }}
-                        >
-                            Môn học
-                        </InputLabel>
+                        <InputLabel>Môn học</InputLabel>
                         <Select
                             name="subject"
                             value={formData.subject}
                             label="Môn học"
                             onChange={handleChange}
                             MenuProps={menuProps}
+                            disabled={isConfirmMode || !formData.specialty}
                             sx={{
                                 backgroundColor: '#fff',
                                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#00008b', // Màu viền khi focus
-                                    borderWidth: '2px', // Tăng độ dày viền khi focus (tuỳ chọn)
+                                    borderColor: '#00008b',
+                                    borderWidth: '2px',
                                 },
                             }}
                         >
-                            <MenuItem value="laptrinhweb">Lập trình web</MenuItem>
-                            <MenuItem value="cautrucdulieuthuattoan">Cấu trúc dữ liệu và thuật toán</MenuItem>
-                            <MenuItem value="kinhtevimomacro">Kinh tế vi mô và macro</MenuItem>
+                            {isConfirmMode ? (
+                                <MenuItem value={formData.subject}>{formData.subjectName}</MenuItem>
+                            ) : (
+                                subjects.map((subject) => (
+                                    <MenuItem key={subject.id} value={subject.MaMH}>
+                                        {subject.TenMH}
+                                    </MenuItem>
+                                ))
+                            )}
                         </Select>
                     </FormControl>
 
                     <FormControl fullWidth>
-                        <InputLabel
-                            sx={{
-                                color: 'rgba(0, 0, 0, 0.6)', // Màu label mặc định
-                                '&.Mui-focused': {
-                                    color: '#00008b', // Màu label khi focus
-                                },
-                            }}
-                        >
-                            Độ khó
-                        </InputLabel>
+                        <InputLabel>Độ khó</InputLabel>
                         <Select
                             name="difficulty"
                             value={formData.difficulty}
                             label="Độ khó"
                             onChange={handleChange}
                             MenuProps={menuProps}
+                            disabled={isConfirmMode}
                             sx={{
                                 backgroundColor: '#fff',
                                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#00008b', // Màu viền khi focus
-                                    borderWidth: '2px', // Tăng độ dày viền khi focus (tuỳ chọn)
+                                    borderColor: '#00008b',
+                                    borderWidth: '2px',
                                 },
                             }}
                         >
@@ -179,39 +271,10 @@ const CreateTest = () => {
                         label="Số lượng câu hỏi"
                         type="number"
                         value={formData.questionCount}
-                        onChange={handleChange}
                         variant="outlined"
-                        sx={{
-                            backgroundColor: '#fff',
-                            '& .MuiOutlinedInput-root': {
-                                '& fieldset': {
-                                    borderColor: 'rgba(0, 0, 0, 0.23)', // Viền mặc định
-                                },
-                                '&:hover fieldset': {
-                                    borderColor: 'rgba(0, 0, 0, 0.87)', // Viền khi hover
-                                },
-                                '&.Mui-focused fieldset': {
-                                    borderColor: '#00008b', // Màu viền khi focus
-                                    borderWidth: '2px',
-                                },
-                            },
-                            '& .MuiInputLabel-root': {
-                                color: 'rgba(0, 0, 0, 0.6)', // Màu label mặc định
-                                '&.Mui-focused': {
-                                    color: '#00008b', // Màu label khi focus
-                                },
-                            },
+                        InputProps={{
+                            readOnly: true,
                         }}
-                    />
-
-                    <TextField
-                        fullWidth
-                        name="testTime"
-                        label="Thiết lập thời gian (phút)"
-                        type="number"
-                        value={formData.testTime}
-                        onChange={handleChange}
-                        variant="outlined"
                         sx={{
                             backgroundColor: '#fff',
                             '& .MuiOutlinedInput-root': {
@@ -226,16 +289,74 @@ const CreateTest = () => {
                                     borderWidth: '2px',
                                 },
                             },
-                            '& .MuiInputLabel-root': {
-                                color: 'rgba(0, 0, 0, 0.6)',
-                                '&.Mui-focused': {
-                                    color: '#00008b',
+                        }}
+                    />
+
+                    <TextField
+                        fullWidth
+                        name="testTime"
+                        label="Thiết lập thời gian (phút)"
+                        type="number"
+                        value={formData.testTime}
+                        variant="outlined"
+                        InputProps={{
+                            readOnly: true,
+                        }}
+                        sx={{
+                            backgroundColor: '#fff',
+                            '& .MuiOutlinedInput-root': {
+                                '& fieldset': {
+                                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                                },
+                                '&:hover fieldset': {
+                                    borderColor: 'rgba(0, 0, 0, 0.87)',
+                                },
+                                '&.Mui-focused fieldset': {
+                                    borderColor: '#00008b',
+                                    borderWidth: '2px',
                                 },
                             },
                         }}
                     />
 
-                    <button className={cx('btn-submit')}>Tiếp tục</button>
+                    <FormControl fullWidth>
+                        <InputLabel>Chọn cách tạo</InputLabel>
+                        <Select
+                            name="creationMethod"
+                            value={formData.creationMethod}
+                            label="Chọn cách tạo"
+                            onChange={handleChange}
+                            MenuProps={menuProps}
+                            disabled={isConfirmMode}
+                            sx={{
+                                backgroundColor: '#fff',
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#00008b',
+                                    borderWidth: '2px',
+                                },
+                            }}
+                        >
+                            <MenuItem value="ai">Tạo câu từ AI</MenuItem>
+                            <MenuItem value="bank">Tạo câu từ ngân hàng câu hỏi</MenuItem>
+                        </Select>
+                    </FormControl>
+
+                    {isConfirmMode ? (
+                        <div className={cx('actions')}>
+                            <div>
+                                <button className={cx('btn-back')} onClick={handleBackToCreate} sx={{ marginRight: 2 }}>
+                                    Quay lại
+                                </button>
+                                <button className={cx('btn-next')} onClick={handleStartTest}>
+                                    Làm bài
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button className={cx('btn-submit')} type="submit">
+                            Tiếp tục
+                        </button>
+                    )}
                 </Box>
             </Container>
         </div>

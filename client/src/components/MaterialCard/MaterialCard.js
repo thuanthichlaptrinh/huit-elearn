@@ -52,16 +52,30 @@ function MaterialCard({ data, type = 'document' }) {
                     >
                         {displayFacultyName}
                     </Link>
-                    <Link
-                        to={
-                            type === 'document'
-                                ? `/material/${id}`
-                                : `/filterSubject?keyword=${encodeURIComponent(displayTitle)}`
-                        }
-                        className={cx('card-title')}
-                    >
-                        {displayTitle}
-                    </Link>
+
+                    {type !== 'document' ? (
+                        <Link
+                            to={
+                                type === 'document'
+                                    ? `/material/${id}`
+                                    : `/filterSubject?keyword=${encodeURIComponent(displayTitle)}`
+                            }
+                            className={cx('card-title')}
+                        >
+                            {displayTitle}
+                        </Link>
+                    ) : (
+                        <span
+                            to={
+                                type === 'document'
+                                    ? `/material/${id}`
+                                    : `/filterSubject?keyword=${encodeURIComponent(displayTitle)}`
+                            }
+                            className={cx('card-title')}
+                        >
+                            {displayTitle}
+                        </span>
+                    )}
 
                     {type === 'document' && (
                         <>

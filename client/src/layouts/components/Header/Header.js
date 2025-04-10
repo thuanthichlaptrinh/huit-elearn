@@ -104,7 +104,10 @@ function Header() {
                     <NavLink to="/createtest" className={({ isActive }) => cx('action-item', { active: isActive })}>
                         Tạo bài kiểm tra
                     </NavLink>
-                    <NavLink to="/exams" className={({ isActive }) => cx('action-item', { active: isActive })}>
+                    <NavLink
+                        to="/multiple-choice"
+                        className={({ isActive }) => cx('action-item', { active: isActive })}
+                    >
                         Trắc nghiệm
                     </NavLink>
                     <NavLink to="/news" className={({ isActive }) => cx('action-item', { active: isActive })}>
