@@ -11,7 +11,7 @@
         font-weight: 500;
         padding: 16px 0;
         gap: 10;
-        color: #b3b3b3; // Làm đậm hơn
+        color: #b3b3b3;
 
         a {
             color: var(--primary);
@@ -19,7 +19,7 @@
             transition: 0.3s;
 
             &:hover {
-                text-decoration: underline;
+                color: var(--orange-color);
             }
         }
     }

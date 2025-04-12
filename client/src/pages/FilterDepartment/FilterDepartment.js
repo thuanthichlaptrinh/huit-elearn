@@ -15,10 +15,7 @@ import { collection, getDocs } from 'firebase/firestore';
 
 const cx = classNames.bind(styles);
 
-// Thời gian cache (1 giờ = 60 phút * 60 giây * 1000 milliseconds)
 const CACHE_DURATION = 60 * 60 * 1000;
-
-// Biến kiểm soát log (bật/tắt log trong môi trường production)
 const ENABLE_LOGS = process.env.NODE_ENV === 'development';
 
 const FilterDepartment = () => {
@@ -52,34 +49,48 @@ const FilterDepartment = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
-    // Hàm kiểm tra và lấy dữ liệu từ localStorage
     const getCachedData = () => {
-        const cached = localStorage.getItem('materialsList');
-        const cachedTimestamp = localStorage.getItem('materialsListTimestamp');
-        const cachedImagesData = localStorage.getItem('cachedImagesMaterials');
+        try {
+            const cached = localStorage.getItem('materialsList');
+            const cachedTimestamp = localStorage.getItem('materialsListTimestamp');
+            const cachedImagesData = localStorage.getItem('cachedImagesMaterials');
 
-        if (cached && cachedTimestamp) {
-            const currentTime = new Date().getTime();
-            const timeDifference = currentTime - parseInt(cachedTimestamp, 10);
+            if (cached && cachedTimestamp) {
+                const currentTime = new Date().getTime();
+                const timeDifference = currentTime - parseInt(cachedTimestamp, 10);
 
-            if (timeDifference < CACHE_DURATION) {
-                const materialsData = JSON.parse(cached);
-                const imagesData = cachedImagesData ? JSON.parse(cachedImagesData) : {};
-                setCachedImages(imagesData);
-                return materialsData;
+                if (timeDifference < CACHE_DURATION) {
+                    const materialsData = JSON.parse(cached);
+                    const imagesData = cachedImagesData ? JSON.parse(cachedImagesData) : {};
+
+                    if (Array.isArray(materialsData) && materialsData.length > 0) {
+                        setCachedImages(imagesData);
+                        return materialsData;
+                    } else {
+                        console.warn('Dữ liệu cache không hợp lệ, xóa cache...');
+                        localStorage.removeItem('materialsList');
+                        localStorage.removeItem('materialsListTimestamp');
+                        localStorage.removeItem('cachedImagesMaterials');
+                        return null;
+                    }
+                }
             }
+            return null;
+        } catch (err) {
+            console.error('Lỗi khi parse dữ liệu từ localStorage:', err);
+            localStorage.removeItem('materialsList');
+            localStorage.removeItem('materialsListTimestamp');
+            localStorage.removeItem('cachedImagesMaterials');
+            return null;
         }
-        return null;
     };
 
-    // Hàm lưu dữ liệu vào localStorage
     const setCachedData = (data) => {
         localStorage.setItem('materialsList', JSON.stringify(data));
         localStorage.setItem('materialsListTimestamp', new Date().getTime().toString());
         localStorage.setItem('cachedImagesMaterials', JSON.stringify(cachedImages));
     };
 
-    // Hàm tải và cache hình ảnh
     const cacheImage = async (imageUrl, itemId) => {
         if (cachedImages[itemId]) {
             return cachedImages[itemId];
@@ -109,23 +120,20 @@ const FilterDepartment = () => {
         }
     };
 
-    // Lấy dữ liệu từ Firestore
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
 
-                // Bước 1: Lấy toàn bộ faculties trước và lưu vào facultiesMap
                 const facultiesCollection = collection(db, 'faculties');
                 const facultiesSnapshot = await getDocs(facultiesCollection);
                 const facultiesMap = {};
-
                 facultiesSnapshot.docs.forEach((doc) => {
                     const data = doc.data();
                     facultiesMap[data.MaKhoa] = data;
                 });
+                console.log('Faculties Map:', facultiesMap);
 
-                // Bước 2: Lấy toàn bộ subjects và lưu vào subjectsMap
                 const subjectsCollection = collection(db, 'subjects');
                 const subjectsSnapshot = await getDocs(subjectsCollection);
                 const subjectsMap = {};
@@ -133,14 +141,21 @@ const FilterDepartment = () => {
                     const data = doc.data();
                     subjectsMap[data.MaMH] = data;
                 });
+                console.log('Subjects Map:', subjectsMap);
 
-                // Bước 3: Lấy danh sách tài liệu từ collection 'documents'
                 const materialsCollection = collection(db, 'documents');
                 const materialsSnapshot = await getDocs(materialsCollection);
+                console.log('Documents Snapshot:', materialsSnapshot.size);
 
                 const materialsList = [];
                 for (const docSnapshot of materialsSnapshot.docs) {
                     const data = docSnapshot.data();
+                    console.log('Document Data:', data);
+
+                    // Bỏ điều kiện trangThai để hiển thị tất cả tài liệu
+                    // if (data.trangThai !== 'Đã duyệt') {
+                    //     continue;
+                    // }
 
                     const subjectData = subjectsMap[data.maMH] || {};
                     if (!subjectsMap[data.maMH]) {
@@ -158,6 +173,7 @@ const FilterDepartment = () => {
                         }
                     }
                     const facultyName = facultyData.TenKhoa || 'Khoa không xác định';
+                    const facultyMaKhoa = facultyData.MaKhoa || 'unknown';
 
                     const imageUrl = data.previewImages || '/images/no-image.jpg';
                     const cachedImage = await cacheImage(imageUrl, docSnapshot.id);
@@ -166,7 +182,9 @@ const FilterDepartment = () => {
                         id: docSnapshot.id,
                         title: data.tenTaiLieu || 'Không có tiêu đề',
                         department: facultyName,
+                        maKhoa: facultyMaKhoa, // Vẫn lưu maKhoa để sử dụng nếu cần
                         subject: subjectName,
+                        maMH: data.maMH, // Vẫn lưu maMH để sử dụng nếu cần
                         imageUrl: cachedImage,
                         type: data.loai || 'PDF',
                         postTime: data.ngayDang
@@ -176,6 +194,7 @@ const FilterDepartment = () => {
                     });
                 }
 
+                console.log('Materials List:', materialsList);
                 setCachedData(materialsList);
                 setSearchResults(materialsList);
                 setLoading(false);
@@ -197,7 +216,6 @@ const FilterDepartment = () => {
         }
     }, []);
 
-    // Hàm hiển thị thông báo
     const showNotification = (message, type = 'info') => {
         setAlertMessage(message);
         setAlertType(type);
@@ -208,19 +226,16 @@ const FilterDepartment = () => {
         }, 3000);
     };
 
-    // Hàm xử lý thay đổi sắp xếp
     const handleSortChange = (e) => {
         setSortOrder(e.target.value);
     };
 
-    // Hàm xử lý chuyển trang
     const handlePageChange = (page) => {
         setCurrentPage(page);
     };
 
     const handleClickHeart = (id) => {
         const isLiked = clickedItems.has(id);
-
         setClickedItems((prevClickedItems) => {
             const newClickedItems = new Set(prevClickedItems);
             if (isLiked) {
@@ -238,13 +253,11 @@ const FilterDepartment = () => {
         }
     };
 
-    // Hàm xử lý khi nhấn vào nút dots
     const handleDotsClick = (id, e) => {
         e.stopPropagation();
         setOpenDropdownId(openDropdownId === id ? null : id);
     };
 
-    // Hàm xử lý các hành động từ dropdown
     const handleAction = (action, itemId, e) => {
         if (e) {
             e.stopPropagation();
@@ -280,7 +293,6 @@ const FilterDepartment = () => {
         }
     };
 
-    // Hàm xử lý khi gửi báo cáo
     const handleReportSubmit = (e) => {
         e.preventDefault();
         if (!reportReason) {
@@ -293,18 +305,15 @@ const FilterDepartment = () => {
         }
 
         showNotification('Báo cáo của bạn đã được gửi', 'success');
-
         setShowReportForm(false);
         setReportReason('');
         setReportDescription('');
         setReportItemId(null);
     };
 
-    // Đóng dropdown khi click bên ngoài
     useEffect(() => {
         const handleClickOutside = (event) => {
             let shouldCloseDropdown = true;
-
             Object.keys(dropdownRefs.current).forEach((id) => {
                 if (dropdownRefs.current[id] && dropdownRefs.current[id].contains(event.target)) {
                     shouldCloseDropdown = false;
@@ -322,7 +331,7 @@ const FilterDepartment = () => {
         };
     }, []);
 
-    // Lọc dữ liệu dựa trên query params và selectedItems
+    // Sửa logic lọc để giống code cũ (dùng TenKhoa và TenMH)
     const filteredResults = searchResults.filter((item) => {
         const keywordMatch = keyword ? item.title.toLowerCase().includes(keyword.toLowerCase()) : true;
         const courseMatch = course ? item.department.toLowerCase().includes(course.toLowerCase()) : true;
@@ -330,14 +339,21 @@ const FilterDepartment = () => {
         const typeMatch =
             selectedItems.length === 0 || selectedItems.includes('option1')
                 ? true
-                : options.some(
-                      (opt) => opt.label.toLowerCase() === item.type.toLowerCase() && selectedItems.includes(opt.value),
-                  );
+                : options.some((opt) => {
+                      const itemTypeLower = item.type.toLowerCase();
+                      const optLabelLower = opt.label.toLowerCase();
+                      const typeMatches =
+                          (itemTypeLower === 'doc' && optLabelLower === 'word') || itemTypeLower === optLabelLower;
+                      return typeMatches && selectedItems.includes(opt.value);
+                  });
 
         return keywordMatch && courseMatch && subjectMatch && typeMatch;
     });
 
-    // Sắp xếp dữ liệu (dựa trên sortOrder)
+    console.log('Query Params:', { keyword, course, subject, type });
+    console.log('Selected Items:', selectedItems);
+    console.log('Filtered Results:', filteredResults);
+
     const sortedResults = [...filteredResults].sort((a, b) => {
         if (sortOrder === 'newest') {
             return b.id.localeCompare(a.id);
@@ -345,7 +361,6 @@ const FilterDepartment = () => {
         return a.id.localeCompare(b.id);
     });
 
-    // Tính toán phân trang
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = sortedResults.slice(indexOfFirstItem, indexOfLastItem);
@@ -378,8 +393,11 @@ const FilterDepartment = () => {
                 </div>
 
                 <div className={cx('results-link')}>
-                    <Link to="/">Trang chủ</Link> / <Link>{course || 'Công nghệ thông tin'}</Link> /{' '}
-                    <Link>Sắp xếp theo ngày gần nhất</Link>
+                    <Link to="/">Trang chủ</Link> /{' '}
+                    <Link>
+                        {course || 'Công nghệ thông tin'} {/* Sửa để hiển thị course trực tiếp */}
+                    </Link>{' '}
+                    / <Link>Sắp xếp theo ngày gần nhất</Link>
                 </div>
 
                 <div className={cx('results-content')}>
@@ -400,7 +418,7 @@ const FilterDepartment = () => {
 
                             {currentItems.length > 0 ? (
                                 currentItems.map((item) => (
-                                    <div key={item.id} className={cx('book-item')}>
+                                    <Link to={`/detail/${item.id}`} key={item.id} className={cx('book-item')}>
                                         <div className={cx('book-img')}>
                                             <img
                                                 src={item.imageUrl}
@@ -412,7 +430,10 @@ const FilterDepartment = () => {
                                             />
                                             <button
                                                 className={cx('btn-heart')}
-                                                onClick={() => handleClickHeart(item.id)}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleClickHeart(item.id);
+                                                }}
                                             >
                                                 <FontAwesomeIcon
                                                     icon={faHeart}
@@ -445,7 +466,10 @@ const FilterDepartment = () => {
                                             >
                                                 <button
                                                     className={cx('btn-dot')}
-                                                    onClick={(e) => handleDotsClick(item.id, e)}
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleDotsClick(item.id, e);
+                                                    }}
                                                 >
                                                     <img src="/images/dots-icon.svg" alt="Dots Icon" />
                                                 </button>
@@ -474,7 +498,7 @@ const FilterDepartment = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))
                             ) : (
                                 <p>Không có kết quả phù hợp.</p>

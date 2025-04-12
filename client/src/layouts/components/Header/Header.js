@@ -110,7 +110,7 @@ function Header() {
                     >
                         Trắc nghiệm
                     </NavLink>
-                    <NavLink to="/news" className={({ isActive }) => cx('action-item', { active: isActive })}>
+                    <NavLink to="/blog" className={({ isActive }) => cx('action-item', { active: isActive })}>
                         Tin tức
                     </NavLink>
                     <div className={cx('notification')}>

@@ -13,6 +13,10 @@
         font-weight: 500;
         font-size: 14px;
         color: var(--primary);
+
+        &:hover {
+            color: var(--orange-color);
+        }
     }
 
     a:last-child {
@@ -26,10 +30,23 @@
     background-color: var(--primary);
     display: inline-block;
     padding: 10px;
-}
 
-.title {
-    font-weight: bold;
+    .title {
+        font-size: 16px;
+        font-family: 'Roboto', sans-serif;
+    }
+
+    .info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+
+        .subject,
+        .faculty {
+            font-size: 12px;
+        }
+    }
 }
 
 .questions {

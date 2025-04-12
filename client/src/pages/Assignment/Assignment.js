@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Assignment.module.scss';
 import { Button, Radio, RadioGroup, FormControlLabel, Typography } from '@mui/material';
 import { db } from '../../firebase/config';
-import { addDoc, collection, getDocs, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, getDocs, serverTimestamp, query, where } from 'firebase/firestore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { Link } from 'react-router-dom';
@@ -20,15 +20,80 @@ function Assignment() {
     const [submitted, setSubmitted] = useState(false);
     const [saved, setSaved] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const testSavedRef = useRef(false); // Track if the test has been saved
+    const maDeRef = useRef(null); // Store the MaDe to ensure consistency
 
     const { user } = useSelector((state) => state.auth);
 
+    // Function to save the test to Firestore
+    const saveTestToFirestore = async (generatedQuestions) => {
+        if (testSavedRef.current) {
+            console.log('Test already saved, skipping save operation.');
+            return;
+        }
+
+        try {
+            const difficultyMap = {
+                easy: 'Dễ',
+                medium: 'Trung bình',
+                hard: 'Khó',
+            };
+            const mappedDifficulty = difficultyMap[state.difficulty.toLowerCase()] || state.difficulty;
+
+            // Use the stored MaDe, or generate a new one if it doesn't exist
+            if (!maDeRef.current) {
+                maDeRef.current = `DE${Date.now()}`;
+            }
+            const uniqueMaDe = maDeRef.current;
+
+            const testData = {
+                MaCauHoi: generatedQuestions.map((q) =>
+                    state.creationMethod === 'bank' ? q.MaCauHoi || q.id : `AI_${q.MaMH}_${q.NoiDungCauHoi}`,
+                ),
+                MaDe: uniqueMaDe,
+                MaMon: state.subject || '',
+                MaNguoiDung: user && user.MaNguoiDung ? user.MaNguoiDung : 'anonymous',
+                NgayTao: serverTimestamp(),
+                SoLuongCauHoi: generatedQuestions.length,
+                TenDe: state.subjectName
+                    ? `${state.subjectName} - ${mappedDifficulty} (${uniqueMaDe})`
+                    : `Đề ${uniqueMaDe}`,
+            };
+
+            // Kiểm tra xem bài kiểm tra đã tồn tại chưa dựa trên MaDe
+            const testRef = collection(db, 'test');
+            const q = query(
+                testRef,
+                where('MaNguoiDung', '==', user && user.MaNguoiDung ? user.MaNguoiDung : 'anonymous'),
+                where('MaDe', '==', uniqueMaDe),
+            );
+            const existingTests = await getDocs(q);
+
+            // Chỉ lưu nếu không có bài kiểm tra với MaDe này
+            if (existingTests.empty) {
+                const docRef = await addDoc(collection(db, 'test'), testData);
+                testSavedRef.current = true; // Mark the test as saved
+                console.log('Đã lưu bài kiểm tra vào Firestore:', { id: docRef.id, ...testData });
+            } else {
+                console.log('Bài kiểm tra với MaDe này đã tồn tại, không lưu lại');
+                testSavedRef.current = true; // Mark the test as saved
+            }
+        } catch (error) {
+            console.error('Lỗi khi lưu bài kiểm tra vào Firestore:', error);
+            throw new Error('Đã xảy ra lỗi khi lưu bài kiểm tra. Vui lòng thử lại sau.');
+        }
+    };
+
     // Tạo câu hỏi khi vào trang
     useEffect(() => {
+        let isMounted = true; // Track if the component is mounted
+
         const generateQuestions = async () => {
             // Kiểm tra xem state có tồn tại và hợp lệ không
             if (!state || !state.creationMethod || !state.subject || !state.difficulty || !state.questionCount) {
-                setErrorMessage('Dữ liệu không hợp lệ. Vui lòng quay lại và tạo bài kiểm tra mới.');
+                if (isMounted) {
+                    setErrorMessage('Dữ liệu không hợp lệ. Vui lòng quay lại và tạo bài kiểm tra mới.');
+                }
                 return;
             }
 
@@ -72,9 +137,11 @@ function Assignment() {
 
                     // Kiểm tra xem có câu hỏi nào phù hợp không
                     if (filteredQuestions.length === 0) {
-                        setErrorMessage(
-                            'Không có câu hỏi nào phù hợp với môn học và độ khó đã chọn. Vui lòng thử lại với lựa chọn khác.',
-                        );
+                        if (isMounted) {
+                            setErrorMessage(
+                                'Không đủ câu hỏi trong ngân hàng để random. Vui lòng thử lại với lựa chọn khác.',
+                            );
+                        }
                         return;
                     }
 
@@ -84,52 +151,38 @@ function Assignment() {
 
                     // Nếu số lượng câu hỏi không đủ
                     if (generatedQuestions.length < state.questionCount) {
-                        setErrorMessage(
-                            `Chỉ tìm thấy ${generatedQuestions.length} câu hỏi, không đủ ${state.questionCount} câu như yêu cầu.`,
-                        );
-                    }
-                }
-
-                // Lưu bài kiểm tra vào collection test ngay khi tạo đề
-                if (generatedQuestions.length > 0) {
-                    try {
-                        const difficultyMap = {
-                            easy: 'Dễ',
-                            medium: 'Trung bình',
-                            hard: 'Khó',
-                        };
-                        const mappedDifficulty = difficultyMap[state.difficulty.toLowerCase()] || state.difficulty;
-
-                        const testData = {
-                            MaCauHoi: generatedQuestions.map((q) =>
-                                state.creationMethod === 'bank'
-                                    ? q.MaCauHoi || q.id
-                                    : `AI_${q.MaMH}_${q.NoiDungCauHoi}`,
-                            ), // Đổi tên từ DanhSachCauHoi thành MaCauHoi
-                            MaMon: state.subject || '',
-                            MaNguoiDung: user && user.MaNguoiDung ? user.MaNguoiDung : 'anonymous',
-                            NgayTao: serverTimestamp(),
-                            SoLuongCauHoi: generatedQuestions.length,
-                            TenDe: state.subjectName ? `${state.subjectName} - ${mappedDifficulty}` : '',
-                        };
-
-                        await addDoc(collection(db, 'test'), testData);
-                        console.log('Đã lưu bài kiểm tra vào Firestore:', testData);
-                    } catch (error) {
-                        console.error('Lỗi khi lưu bài kiểm tra vào Firestore:', error);
-                        setErrorMessage('Đã xảy ra lỗi khi lưu bài kiểm tra. Vui lòng thử lại sau.');
+                        if (isMounted) {
+                            setErrorMessage(
+                                `Chỉ tìm thấy ${generatedQuestions.length} câu hỏi, không đủ ${state.questionCount} câu như yêu cầu.`,
+                            );
+                        }
                         return;
                     }
                 }
 
-                setQuestions(generatedQuestions);
+                // Chỉ lưu bài kiểm tra nếu tạo đề thành công (số lượng câu hỏi đủ)
+                if (generatedQuestions.length === state.questionCount && isMounted) {
+                    await saveTestToFirestore(generatedQuestions);
+                }
+
+                if (isMounted) {
+                    setQuestions(generatedQuestions);
+                }
             } catch (error) {
                 console.error('Lỗi khi tạo câu hỏi:', error);
-                setErrorMessage('Đã xảy ra lỗi khi tạo bài kiểm tra. Vui lòng thử lại sau.');
+                if (isMounted) {
+                    setErrorMessage(error.message || 'Đã xảy ra lỗi khi tạo bài kiểm tra. Vui lòng thử lại sau.');
+                }
             }
         };
+
         generateQuestions();
-    }, [state, user]);
+
+        // Cleanup function to prevent state updates after unmount
+        return () => {
+            isMounted = false;
+        };
+    }, [state, user]); // Dependencies remain the same
 
     const handleAnswerChange = (questionIndex, answerIndex) => {
         if (!submitted) {
@@ -148,8 +201,10 @@ function Assignment() {
         setAnswers({});
         setSubmitted(false);
         setSaved(false);
-        // Điều hướng về trang chủ khi nhấn "Hoàn thành"
-        navigate('/');
+        // Reset the refs when navigating away
+        testSavedRef.current = false;
+        maDeRef.current = null;
+        navigate('/multiple-choice');
     };
 
     const calculateScore = () => {
@@ -201,20 +256,17 @@ function Assignment() {
             </div>
 
             <div className={cx('header')}>
+                <p className={cx('title')}>{submitted ? 'Đáp án' : 'Danh sách câu hỏi'}</p>
+
                 {/* Hiển thị thông tin khoa và môn học */}
                 {state && state.specialtyName && state.subjectName && (
                     <div className={cx('info')}>
-                        <Typography variant="body2" className={cx('faculty')}>
-                            {state.specialtyName}
-                        </Typography>
-                        <Typography variant="h5" className={cx('subject')}>
-                            {state.subjectName}
-                        </Typography>
+                        <p className={cx('faculty')}>Khoa: {state.specialtyName}</p> |
+                        <p className={cx('subject')}>Môn: {state.subjectName}</p> |
+                        <p className={cx('subject')}>Số câu: {state.questionCount}</p> |
+                        <p className={cx('subject')}>Thời gian: {state.testTime} phút</p>
                     </div>
                 )}
-                <Typography variant="h6" className={cx('title')}>
-                    {submitted ? 'Đáp án' : 'Danh sách câu hỏi'}
-                </Typography>
             </div>
 
             {/* Hiển thị thông báo lỗi nếu có */}
