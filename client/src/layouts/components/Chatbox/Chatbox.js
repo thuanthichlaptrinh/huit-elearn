@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Chatbox.module.scss';
 import classNames from 'classnames/bind';
 
@@ -10,20 +10,78 @@ const ChatBox = () => {
         {
             id: 1,
             sender: 'bot',
-            text: 'Xin chào, tôi có thể giúp gì cho bạn ?',
+            text: 'Xin chào, tôi là trợ lý AI. Tôi có thể giúp gì cho bạn hôm nay?',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
     ]);
-
     const [newMessage, setNewMessage] = useState('');
+    const [isSending, setIsSending] = useState(false); // Trạng thái để ngăn gửi nhiều yêu cầu đồng thời
 
     const toggleChatbox = () => {
         setIsOpen(!isOpen);
     };
 
-    const handleSendMessage = (e) => {
+    // Utility function to fetch with timeout
+    const fetchWithTimeout = async (url, options, timeout = 180000) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    };
+
+    // Function to fetch response from LM Studio
+    const fetchBotResponse = async (userMessage) => {
+        try {
+            const response = await fetchWithTimeout(
+                'http://127.0.0.1:1234/v1/chat/completions',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gemma-3-12b-it',
+                        messages: [
+                            { role: 'system', content: 'Bạn là một trợ lý AI hữu ích, trả lời ngắn gọn và chính xác.' },
+                            { role: 'user', content: userMessage },
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 150, // Giới hạn phản hồi ngắn gọn
+                        stream: false, // Tắt streaming để tránh lỗi ngắt kết nối
+                    }),
+                },
+                180000, // Timeout 180 giây
+            );
+
+            if (!response.ok) {
+                throw new Error(`Không thể kết nối đến LM Studio. Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const botReply = data.choices[0].message.content;
+
+            return botReply;
+        } catch (error) {
+            console.error('Lỗi khi gọi LM Studio:', error);
+            return 'Xin lỗi, tôi không thể trả lời ngay bây giờ. Vui lòng thử lại sau!';
+        }
+    };
+
+    const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (newMessage.trim() === '') return;
+        if (newMessage.trim() === '' || isSending) return;
+
+        setIsSending(true); // Ngăn gửi nhiều yêu cầu đồng thời
 
         const newMsg = {
             id: messages.length + 1,
@@ -45,18 +103,19 @@ const ChatBox = () => {
 
         setMessages((prevMessages) => [...prevMessages, typingMsg]);
 
-        // Sau 2 giây, thay thế tin nhắn typing bằng tin nhắn thực
-        setTimeout(() => {
-            const botReply = {
-                id: messages.length + 2,
-                sender: 'bot',
-                text: 'Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi sớm!',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            };
+        // Gọi LM Studio để lấy phản hồi
+        const botReplyText = await fetchBotResponse(newMessage);
 
-            // Thay thế tin nhắn typing bằng tin nhắn thực
-            setMessages((prevMessages) => prevMessages.map((msg) => (msg.isTyping ? botReply : msg)));
-        }, 2000);
+        // Thay thế tin nhắn typing bằng tin nhắn thực
+        const botReply = {
+            id: messages.length + 2,
+            sender: 'bot',
+            text: botReplyText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        setMessages((prevMessages) => prevMessages.map((msg) => (msg.isTyping ? botReply : msg)));
+        setIsSending(false); // Cho phép gửi tin nhắn mới
     };
 
     // Nếu chatbox đóng, chỉ hiển thị nút toggle
@@ -150,11 +209,12 @@ const ChatBox = () => {
                                 placeholder="Nhập tin nhắn"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
+                                disabled={isSending}
                             />
                             <button type="button" className={cx('attachmentButton')}>
                                 <img src="/images/open-file.svg" alt="" />
                             </button>
-                            <button type="submit" className={cx('sendButton')}>
+                            <button type="submit" className={cx('sendButton')} disabled={isSending}>
                                 <img src="/images/send-icon.svg" alt="" />
                             </button>
                         </div>
