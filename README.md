@@ -1,4 +1,4 @@
-# Đề tài: Ứng dụng thư viện số và tạo bài kiểm tra kết hợp trí tuệ nhân tạo
+# Đề tài nghiên cứu khoa học: Ứng dụng thư viện số và tạo bài kiểm tra kết hợp trí tuệ nhân tạo
 
 ## Mục tiêu
 
@@ -6,42 +6,22 @@ Giúp sinh viên HUIT có thể tạo bài kiểm tra (tạo đề từ ngân h�
 
 ## 🌟 Tính năng chính
 
--   **Quản lý tài khoản**: Đăng ký, Đăng nhập (hỗ trợ Google/Facebook qua Firebase), Quản lý thông tin cá nhân.
+-   **Quản lý tài khoản**: Đăng ký, Đăng nhập (hỗ trợ Google/Facebook), Quản lý thông tin cá nhân.
 -   **Kho tài liệu**:
     -   Tải lên và chia sẻ tài liệu.
     -   Tìm kiếm và lọc tài liệu theo Khoa, Môn học.
     -   Xem chi tiết tài liệu trực tuyến (PDF).
 -   **Học tập & Kiểm tra**:
     -   Tạo bài kiểm tra.
-    -   Làm bài trắc nghiệm (Multiple Choice).
-    -   Nộp bài tập (Assignment).
+    -   Làm bài trắc nghiệm.
+    -   Nộp bài tập.
+    -   Chatbox hỏi đáp.
 -   **Tin tức & Blog**: Cập nhật tin tức, bài viết mới nhất.
 
 ## 🛠 Công nghệ sử dụng
 
-Dự án được chia thành 2 phần chính: **Client** (Frontend) và **Server** (Backend).
-
-### Client (Frontend)
-
--   **Framework**: [React 19](https://react.dev/)
--   **Routing**: [React Router DOM 7](https://reactrouter.com/)
--   **State Management**: [Redux Toolkit](https://redux-toolkit.js.org/), Redux Persist
--   **API Client**: [Apollo Client](https://www.apollographql.com/docs/react/) (GraphQL), Axios
--   **UI Library**:
-    -   SCSS (CSS Modules)
-    -   [Material UI](https://mui.com/)
-    -   [Ant Design](https://ant.design/)
-    -   Icons: Lucide React, FontAwesome, React Icons
--   **Authentication**: Firebase Auth
--   **Khác**: React PDF, React Slick, EmailJS
-
-### Server (Backend)
-
--   **Runtime**: [Node.js](https://nodejs.org/)
--   **Framework**: [Express](https://expressjs.com/)
--   **API**: [Apollo Server](https://www.apollographql.com/docs/apollo-server/) (GraphQL)
--   **Authentication**: Firebase Admin SDK
--   **Email**: Nodemailer
+-   **Frontend**: React 19, Redux Toolkit, Apollo Client, React Router DOM 7, Material UI, Ant Design, SCSS, Firebase Auth.
+-   **Backend**: Node.js, Express, Apollo Server (GraphQL), Firebase, Nodemailer.
 
 ## 🚀 Cài đặt và Hướng dẫn sử dụng
 
