@@ -6,22 +6,32 @@ const cx = classNames.bind(styles);
 
 const ChatBox = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            sender: 'bot',
-            text: 'Xin chào, tôi là trợ lý AI. Tôi có thể giúp gì cho bạn hôm nay?',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-    ]);
+    const [messages, setMessages] = useState(() => {
+        // Load messages from localStorage on mount
+        const savedMessages = localStorage.getItem('chatMessages');
+        return savedMessages
+            ? JSON.parse(savedMessages)
+            : [
+                  {
+                      id: 1,
+                      sender: 'bot',
+                      text: 'Xin chào, tôi là trợ lý AI. Tôi có thể giúp gì cho bạn hôm nay?',
+                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  },
+              ];
+    });
     const [newMessage, setNewMessage] = useState('');
-    const [isSending, setIsSending] = useState(false); // Trạng thái để ngăn gửi nhiều yêu cầu đồng thời
+    const [isSending, setIsSending] = useState(false);
+
+    // Save messages to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }, [messages]);
 
     const toggleChatbox = () => {
         setIsOpen(!isOpen);
     };
 
-    // Utility function to fetch with timeout
     const fetchWithTimeout = async (url, options, timeout = 180000) => {
         const controller = new AbortController();
         const id = setTimeout(() => controller.abort(), timeout);
@@ -39,7 +49,6 @@ const ChatBox = () => {
         }
     };
 
-    // Function to fetch response from LM Studio
     const fetchBotResponse = async (userMessage) => {
         try {
             const response = await fetchWithTimeout(
@@ -50,17 +59,17 @@ const ChatBox = () => {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        model: 'gemma-3-12b-it',
+                        model: 'gemma-3-1b-it',
                         messages: [
                             { role: 'system', content: 'Bạn là một trợ lý AI hữu ích, trả lời ngắn gọn và chính xác.' },
                             { role: 'user', content: userMessage },
                         ],
                         temperature: 0.7,
-                        max_tokens: 150, // Giới hạn phản hồi ngắn gọn
-                        stream: false, // Tắt streaming để tránh lỗi ngắt kết nối
+                        max_tokens: 300,
+                        stream: false,
                     }),
                 },
-                180000, // Timeout 180 giây
+                180000, // Fixed timeout to 180s to match Assignment.jsx
             );
 
             if (!response.ok) {
@@ -68,7 +77,10 @@ const ChatBox = () => {
             }
 
             const data = await response.json();
-            const botReply = data.choices[0].message.content;
+            let botReply = data.choices[0].message.content;
+
+            // Clean up bot reply (remove unwanted formatting like ```json)
+            botReply = botReply.replace(/^```json\n|\n```$/g, '').trim();
 
             return botReply;
         } catch (error) {
@@ -81,7 +93,7 @@ const ChatBox = () => {
         e.preventDefault();
         if (newMessage.trim() === '' || isSending) return;
 
-        setIsSending(true); // Ngăn gửi nhiều yêu cầu đồng thời
+        setIsSending(true);
 
         const newMsg = {
             id: messages.length + 1,
@@ -93,7 +105,6 @@ const ChatBox = () => {
         setMessages([...messages, newMsg]);
         setNewMessage('');
 
-        // Thêm tin nhắn typing indicator trước
         const typingMsg = {
             id: messages.length + 2,
             sender: 'bot',
@@ -103,10 +114,8 @@ const ChatBox = () => {
 
         setMessages((prevMessages) => [...prevMessages, typingMsg]);
 
-        // Gọi LM Studio để lấy phản hồi
         const botReplyText = await fetchBotResponse(newMessage);
 
-        // Thay thế tin nhắn typing bằng tin nhắn thực
         const botReply = {
             id: messages.length + 2,
             sender: 'bot',
@@ -115,10 +124,23 @@ const ChatBox = () => {
         };
 
         setMessages((prevMessages) => prevMessages.map((msg) => (msg.isTyping ? botReply : msg)));
-        setIsSending(false); // Cho phép gửi tin nhắn mới
+        setIsSending(false);
     };
 
-    // Nếu chatbox đóng, chỉ hiển thị nút toggle
+    // Optional: Clear chat history
+    const handleClearChat = () => {
+        const initialMessage = [
+            {
+                id: 1,
+                sender: 'bot',
+                text: 'Xin chào, tôi là trợ lý AI. Tôi có thể giúp gì cho bạn hôm nay?',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            },
+        ];
+        setMessages(initialMessage);
+        localStorage.setItem('chatMessages', JSON.stringify(initialMessage));
+    };
+
     if (!isOpen) {
         return (
             <div className={styles.chatToggle} onClick={toggleChatbox}>
@@ -180,6 +202,7 @@ const ChatBox = () => {
                                             message.sender === 'user'
                                                 ? 'linear-gradient(to right, #0000fd, #00008b)'
                                                 : '#F1F4F8',
+                                        whiteSpace: 'pre-wrap', // Respect newlines
                                     }}
                                 >
                                     {message.isTyping ? (
@@ -189,7 +212,13 @@ const ChatBox = () => {
                                             <span></span>
                                         </div>
                                     ) : (
-                                        message.text
+                                        // Split text by \n and join with <br />
+                                        message.text.split('\n').map((line, index) => (
+                                            <React.Fragment key={index}>
+                                                {line}
+                                                {index < message.text.split('\n').length - 1 && <br />}
+                                            </React.Fragment>
+                                        ))
                                     )}
                                 </div>
                             </div>
